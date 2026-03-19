@@ -1,4 +1,9 @@
 # STAGE 1: Build Environment (NIST CM-2 compliant)
+# NOTE (G-04): Replace the @sha256 digest below with the verified production digest before
+# deploying.  Obtain the current digest with:
+#   skopeo inspect docker://registry.access.redhat.com/ubi8/python-311:latest \
+#     | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['Digest'])"
+# Then pin it here:  registry.access.redhat.com/ubi8/python-311@sha256:<real-digest>
 FROM registry.access.redhat.com/ubi8/python-311@sha256:abcd... AS builder
 
 USER root
@@ -9,6 +14,11 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir --target=/build/deps -r requirements.txt
 
 # STAGE 2: Production Runtime (The "Clean Room")
+# NOTE (G-04): Replace the @sha256 digest below with the verified production digest before
+# deploying.  Obtain the current digest with:
+#   skopeo inspect docker://registry.access.redhat.com/ubi8/python-311-minimal:latest \
+#     | python3 -c "import sys,json; d=json.load(sys.stdin); print(d['Digest'])"
+# Then pin it here:  registry.access.redhat.com/ubi8/python-311-minimal@sha256:<real-digest>
 FROM registry.access.redhat.com/ubi8/python-311-minimal@sha256:wxyz...
 
 # Compliance Metadata

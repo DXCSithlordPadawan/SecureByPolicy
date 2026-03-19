@@ -1,0 +1,72 @@
+---
+# Trivy Container Registry Scan Workflow
+# Satisfies: PRD §2.2 — Container Registry Scanning, DISA STIG V-222645
+# Compliance: NIST SI-7, FIPS 140-3
+#
+# Triggers on every push and pull_request that modifies the dockerfile,
+# and on a weekly schedule to catch newly-published CVEs.
+
+name: Trivy Container Scan
+
+on:
+  push:
+    branches:
+      - main
+      - "release/**"
+    paths:
+      - "dockerfile"
+      - "app/**"
+  pull_request:
+    paths:
+      - "dockerfile"
+      - "app/**"
+  schedule:
+    # Weekly scan every Monday at 06:00 UTC
+    - cron: "0 6 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  security-events: write   # required to upload SARIF results
+
+jobs:
+  trivy-scan:
+    name: Trivy Vulnerability Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build container image
+        run: |
+          docker build -t git-policy-enforcer:ci-scan -f dockerfile .
+
+      - name: Run Trivy vulnerability scan (SARIF output)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "git-policy-enforcer:ci-scan"
+          format: "sarif"
+          output: "trivy-results.sarif"
+          severity: "CRITICAL,HIGH"
+          exit-code: "1"
+          ignore-unfixed: false
+          vuln-type: "os,library"
+
+      - name: Upload Trivy SARIF results to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: "trivy-results.sarif"
+          category: "trivy-container"
+
+      - name: Run Trivy scan (table output for PR comments)
+        if: always()
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          image-ref: "git-policy-enforcer:ci-scan"
+          format: "table"
+          severity: "CRITICAL,HIGH,MEDIUM"
+          exit-code: "0"
+          ignore-unfixed: false
+          vuln-type: "os,library"

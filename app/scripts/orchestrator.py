@@ -4,6 +4,8 @@ import subprocess
 import json
 import re
 import pathlib
+import tempfile
+import shutil
 from datetime import datetime, timezone
 from notifier import NotificationManager
 
@@ -33,6 +35,81 @@ class PolicyEnforcer:
         for rule in self.rules.get("forbidden_patterns", []):
             if re.search(rule["pattern"], diff):
                 violations.append(rule)
+        return violations
+
+    def scan_with_bandit(self, commit_hash):
+        """Runs Bandit static analysis on Python files changed in a commit.
+
+        Satisfies: DISA STIG V-222637 (server-side static analysis).
+        Returns a list of violation dicts compatible with the pattern-scan format.
+        If Bandit is not installed, logs a warning and skips gracefully.
+        """
+        if not shutil.which("bandit"):
+            print("[WARN] Bandit not found in PATH — skipping server-side static analysis.",
+                  file=sys.stderr)
+            return []
+
+        # Collect the set of Python files added/modified in this commit
+        changed_files_output = subprocess.check_output(
+            ["git", "diff-tree", "--no-commit-id", "-r", "--name-only", "--diff-filter=ACM",
+             commit_hash]
+        ).decode()
+        py_files = [f for f in changed_files_output.splitlines() if f.endswith(".py")]
+        if not py_files:
+            return []
+
+        tmpdir = tempfile.mkdtemp(prefix="sbp-bandit-")
+        violations = []
+        try:
+            # Extract each file's content at this commit into a temp directory,
+            # preserving relative paths to avoid name collisions across directories.
+            for rel_path in py_files:
+                dest = pathlib.Path(tmpdir) / rel_path
+                dest.parent.mkdir(parents=True, exist_ok=True)
+                try:
+                    content = subprocess.check_output(
+                        ["git", "show", f"{commit_hash}:{rel_path}"]
+                    )
+                    dest.write_bytes(content)
+                except subprocess.CalledProcessError:
+                    continue  # file may have been deleted in a later stage; skip
+
+            py_tmp_files = list(pathlib.Path(tmpdir).rglob("*.py"))
+            if not py_tmp_files:
+                return []
+
+            result = subprocess.run(
+                ["bandit", "-r", "-f", "json", "-l", "-i", "--",
+                 *[str(p) for p in py_tmp_files]],
+                capture_output=True,
+                text=True,
+            )
+
+            try:
+                bandit_output = json.loads(result.stdout)
+            except json.JSONDecodeError:
+                return []
+
+            for issue in bandit_output.get("results", []):
+                severity = issue.get("issue_severity", "LOW").capitalize()
+                confidence = issue.get("issue_confidence", "LOW").capitalize()
+                test_id = issue.get("test_id", "")
+                test_name = issue.get("test_name", "")
+                text = issue.get("issue_text", "")
+                line = issue.get("line_number", "?")
+                filename = pathlib.Path(issue.get("filename", "")).name
+                violations.append({
+                    "reason": f"Bandit [{test_id}/{test_name}] {text} "
+                              f"(file: {filename}, line: {line}, confidence: {confidence})",
+                    "severity": severity,
+                    "remediation": (
+                        f"Review and remediate {test_id} in {filename}:{line}. "
+                        "See https://bandit.readthedocs.io/ for guidance."
+                    ),
+                })
+        finally:
+            shutil.rmtree(tmpdir, ignore_errors=True)
+
         return violations
 
     def write_audit_log(self, repo, user, sha, event_type, violation=None, action="rejected"):
@@ -90,6 +167,20 @@ class PolicyEnforcer:
                                              violation={"reason": v["reason"], "severity": v["severity"]},
                                              action="rejected")
                         if v["severity"] in ("High", "Critical"):
+                            self.notifier.send_violation_report(repo, user, v)
+                    sys.exit(1)
+
+                # 3. Bandit Static Analysis (DISA STIG V-222637)
+                bandit_violations = self.scan_with_bandit(sha)
+                if bandit_violations:
+                    print(f"❌ REJECTED: Bandit static-analysis violation in commit {sha[:7]}")
+                    for v in bandit_violations:
+                        print(f" - [{v['severity']}] {v['reason']}")
+                        print(f" - Remediation: {v['remediation']}")
+                        self.write_audit_log(repo, user, sha, "bandit_violation",
+                                             violation={"reason": v["reason"], "severity": v["severity"]},
+                                             action="rejected")
+                        if v["severity"] in ("High", "Critical", "Medium"):
                             self.notifier.send_violation_report(repo, user, v)
                     sys.exit(1)
 
