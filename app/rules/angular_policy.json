@@ -1,0 +1,68 @@
+{
+  "standard": "Angular Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".ts", ".html"],
+  "forbidden_patterns": [
+    {
+      "pattern": "bypassSecurityTrustHtml\\s*\\(",
+      "reason": "OWASP A03 / Angular Security: bypassSecurityTrustHtml() disables Angular's built-in XSS sanitization for HTML.",
+      "severity": "Critical",
+      "remediation": "Do not use bypassSecurityTrustHtml() with user-controlled content. If HTML rendering is required, sanitize with DomSanitizer after strict input validation and use only with trusted, static content."
+    },
+    {
+      "pattern": "bypassSecurityTrustScript\\s*\\(",
+      "reason": "OWASP A03 / Angular Security: bypassSecurityTrustScript() disables Angular's script sanitization and allows XSS.",
+      "severity": "Critical",
+      "remediation": "Never pass user input to bypassSecurityTrustScript(). Avoid executing dynamic scripts; use Angular's component system instead."
+    },
+    {
+      "pattern": "bypassSecurityTrustUrl\\s*\\(",
+      "reason": "OWASP A03: bypassSecurityTrustUrl() can enable javascript: URLs and open redirect vulnerabilities.",
+      "severity": "High",
+      "remediation": "Validate URLs against a strict allowlist before using bypassSecurityTrustUrl(). Prefer relative URLs or Angular Router navigation."
+    },
+    {
+      "pattern": "bypassSecurityTrustResourceUrl\\s*\\(",
+      "reason": "OWASP A03: bypassSecurityTrustResourceUrl() can allow loading of malicious resources.",
+      "severity": "High",
+      "remediation": "Validate resource URLs against a strict allowlist before using bypassSecurityTrustResourceUrl()."
+    },
+    {
+      "pattern": "bypassSecurityTrustStyle\\s*\\(",
+      "reason": "OWASP A03: bypassSecurityTrustStyle() can enable CSS injection attacks.",
+      "severity": "High",
+      "remediation": "Validate CSS values carefully. Avoid using bypassSecurityTrustStyle() with user-controlled values."
+    },
+    {
+      "pattern": "\\[innerHTML\\]\\s*=",
+      "reason": "OWASP A03: Angular's [innerHTML] binding sanitizes HTML, but usage should be reviewed for trust mark bypass patterns.",
+      "severity": "Medium",
+      "remediation": "Ensure bound value does not come from user input without sanitization. Prefer Angular template binding for plain text: [textContent]."
+    },
+    {
+      "pattern": "localStorage\\.setItem\\s*\\([^)]*(?:token|jwt|session|password|secret|key)",
+      "reason": "OWASP A02 / CIS Benchmark: Storing authentication tokens in localStorage exposes them to XSS attacks.",
+      "severity": "High",
+      "remediation": "Store authentication tokens in HttpOnly, Secure, SameSite cookies via server-side session management."
+    },
+    {
+      "pattern": "Math\\.random\\s*\\(",
+      "reason": "FIPS 140-3 / NIST SP 800-90A: Math.random() is not cryptographically secure.",
+      "severity": "High",
+      "remediation": "Use the Web Crypto API: crypto.getRandomValues(new Uint8Array(32)) or crypto.randomUUID()."
+    },
+    {
+      "pattern": "\\beval\\s*\\(",
+      "reason": "OWASP A03: eval() enables arbitrary code execution.",
+      "severity": "Critical",
+      "remediation": "Remove eval(). Angular's template engine should handle all dynamic rendering."
+    },
+    {
+      "pattern": "password\\s*[:=]\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in source code.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords. Use Angular environments with injection tokens and load secrets from secure backend APIs."
+    }
+  ]
+}

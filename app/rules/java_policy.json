@@ -1,0 +1,80 @@
+{
+  "standard": "Java Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".java"],
+  "forbidden_patterns": [
+    {
+      "pattern": "MessageDigest\\.getInstance\\s*\\(\\s*['\"]MD5['\"]",
+      "reason": "FIPS 140-3 / STIG V-222645: MD5 is cryptographically broken and not FIPS-compliant.",
+      "severity": "High",
+      "remediation": "Replace with MessageDigest.getInstance(\"SHA-256\") or stronger FIPS-approved algorithms."
+    },
+    {
+      "pattern": "MessageDigest\\.getInstance\\s*\\(\\s*['\"]SHA-1['\"]|MessageDigest\\.getInstance\\s*\\(\\s*['\"]SHA1['\"]",
+      "reason": "FIPS 140-3 / NIST SP 800-131A: SHA-1 is deprecated and not FIPS 140-3 compliant.",
+      "severity": "High",
+      "remediation": "Replace with MessageDigest.getInstance(\"SHA-256\") or stronger."
+    },
+    {
+      "pattern": "Cipher\\.getInstance\\s*\\(\\s*['\"]DES",
+      "reason": "FIPS 140-3 / STIG V-222645: DES is cryptographically broken. FIPS 140-3 forbids its use.",
+      "severity": "Critical",
+      "remediation": "Replace DES with AES-256-GCM: Cipher.getInstance(\"AES/GCM/NoPadding\")."
+    },
+    {
+      "pattern": "Cipher\\.getInstance\\s*\\(\\s*['\"]RC4|Cipher\\.getInstance\\s*\\(\\s*['\"]RC2",
+      "reason": "FIPS 140-3: RC4 and RC2 are cryptographically broken stream ciphers forbidden by FIPS.",
+      "severity": "Critical",
+      "remediation": "Replace with AES-256-GCM: Cipher.getInstance(\"AES/GCM/NoPadding\")."
+    },
+    {
+      "pattern": "Runtime\\.getRuntime\\(\\)\\.exec\\s*\\(",
+      "reason": "OWASP A03 / DISA STIG V-222540: Runtime.exec() with string arguments is vulnerable to command injection.",
+      "severity": "Critical",
+      "remediation": "Pass command as a String array: Runtime.getRuntime().exec(new String[]{\"cmd\", \"arg1\"}), or preferably use ProcessBuilder with explicit argument list."
+    },
+    {
+      "pattern": "new\\s+ProcessBuilder\\s*\\([^)]*\\+",
+      "reason": "OWASP A03: ProcessBuilder constructed via string concatenation may be vulnerable to command injection.",
+      "severity": "High",
+      "remediation": "Build the ProcessBuilder argument list using a pre-validated String array, never via concatenation with user-controlled values."
+    },
+    {
+      "pattern": "Statement\\s+\\w+[^;]*\\.execute[^(]*\\([^)]*\\+",
+      "reason": "OWASP A03: SQL query constructed via string concatenation is vulnerable to SQL injection.",
+      "severity": "Critical",
+      "remediation": "Use PreparedStatement with parameterized queries: PreparedStatement ps = conn.prepareStatement(\"SELECT * FROM users WHERE id = ?\"); ps.setInt(1, userId);"
+    },
+    {
+      "pattern": "new\\s+ObjectInputStream\\s*\\(",
+      "reason": "OWASP A08: Unfiltered ObjectInputStream deserialization can execute arbitrary code from malicious serialized objects.",
+      "severity": "Critical",
+      "remediation": "Implement an ObjectInputFilter to whitelist allowed classes before deserializing, or replace with a safe serialization format (JSON/XML)."
+    },
+    {
+      "pattern": "jdwp",
+      "reason": "DISA STIG: JDWP (Java Debug Wire Protocol) must never be enabled in production environments.",
+      "severity": "Critical",
+      "remediation": "Remove all -agentlib:jdwp JVM options from production configurations and startup scripts."
+    },
+    {
+      "pattern": "password\\s*=\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in source code.",
+      "severity": "High",
+      "remediation": "Remove hardcoded credentials. Retrieve passwords from environment variables or a secrets manager (AWS Secrets Manager, HashiCorp Vault)."
+    },
+    {
+      "pattern": "setHostnameVerifier\\s*\\(.*ALLOW_ALL|TrustAllCerts|trustAll.*true",
+      "reason": "OWASP A02 / NIST SC-8: Disabling hostname verification or trusting all certificates enables MITM attacks.",
+      "severity": "Critical",
+      "remediation": "Use proper TLS certificate validation. Never disable hostname verification in production code."
+    },
+    {
+      "pattern": "SSLContext\\.getInstance\\s*\\(\\s*['\"]SSL['\"]|SSLContext\\.getInstance\\s*\\(\\s*['\"]TLSv1(?:(?!\\.[23]))\\b",
+      "reason": "STIG V-222643 / NIST SP 800-52: SSLv3, TLS 1.0, and TLS 1.1 are deprecated protocols.",
+      "severity": "High",
+      "remediation": "Use SSLContext.getInstance(\"TLSv1.3\") or \"TLSv1.2\" and explicitly disable older protocol versions."
+    }
+  ]
+}

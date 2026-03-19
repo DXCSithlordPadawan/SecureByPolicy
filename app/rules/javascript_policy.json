@@ -1,0 +1,80 @@
+{
+  "standard": "JavaScript Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".js", ".mjs", ".cjs"],
+  "forbidden_patterns": [
+    {
+      "pattern": "\\beval\\s*\\(",
+      "reason": "OWASP A03: eval() with user input enables arbitrary code execution (XSS / RCE).",
+      "severity": "Critical",
+      "remediation": "Remove eval(). Use JSON.parse() for data parsing, or refactor to avoid dynamic code evaluation."
+    },
+    {
+      "pattern": "new\\s+Function\\s*\\(",
+      "reason": "OWASP A03: Function constructor is equivalent to eval() and allows arbitrary code execution.",
+      "severity": "Critical",
+      "remediation": "Refactor to use named functions or arrow functions instead of the Function constructor."
+    },
+    {
+      "pattern": "\\.innerHTML\\s*=\\s*(?!['\"]\\s*['\"])",
+      "reason": "OWASP A03 / DISA STIG: Assigning to innerHTML with unsanitized data enables XSS attacks.",
+      "severity": "High",
+      "remediation": "Use element.textContent for plain text, or sanitize HTML with DOMPurify.sanitize() before assigning to innerHTML."
+    },
+    {
+      "pattern": "document\\.write\\s*\\(",
+      "reason": "OWASP A03: document.write() with dynamic content enables XSS attacks.",
+      "severity": "High",
+      "remediation": "Remove document.write(). Use DOM manipulation methods (createElement, appendChild, textContent) instead."
+    },
+    {
+      "pattern": "__proto__\\s*:",
+      "reason": "OWASP A08 / CIS Benchmark: Setting __proto__ enables prototype pollution attacks.",
+      "severity": "Critical",
+      "remediation": "Never merge user-supplied objects that contain __proto__. Use Object.create(null) for data containers and validate JSON input keys against a whitelist."
+    },
+    {
+      "pattern": "Math\\.random\\s*\\(",
+      "reason": "FIPS 140-3 / NIST SP 800-90A: Math.random() is not cryptographically secure and must not be used for tokens, keys, or security operations.",
+      "severity": "High",
+      "remediation": "Use the Web Crypto API: crypto.getRandomValues(new Uint8Array(32)) or crypto.randomUUID() for security-sensitive random values."
+    },
+    {
+      "pattern": "child_process\\.exec\\s*\\(",
+      "reason": "OWASP A03: child_process.exec() invokes a shell and is vulnerable to command injection.",
+      "severity": "Critical",
+      "remediation": "Use child_process.execFile() or child_process.spawn() with an argument array and shell: false to avoid shell injection."
+    },
+    {
+      "pattern": "localStorage\\.setItem\\s*\\([^)]*(?:token|jwt|session|password|secret|key)",
+      "reason": "OWASP A02 / CIS Benchmark: Storing authentication tokens in localStorage exposes them to XSS attacks.",
+      "severity": "High",
+      "remediation": "Store authentication tokens in HttpOnly, Secure, SameSite cookies instead of localStorage or sessionStorage."
+    },
+    {
+      "pattern": "sessionStorage\\.setItem\\s*\\([^)]*(?:token|jwt|session|password|secret|key)",
+      "reason": "OWASP A02: Storing tokens in sessionStorage exposes them to XSS attacks.",
+      "severity": "High",
+      "remediation": "Store authentication tokens in HttpOnly, Secure, SameSite cookies instead of sessionStorage."
+    },
+    {
+      "pattern": "require\\s*\\(\\s*['\"]child_process['\"]\\s*\\).*\\.exec\\s*\\(",
+      "reason": "OWASP A03: child_process.exec() in Node.js is vulnerable to shell injection.",
+      "severity": "Critical",
+      "remediation": "Use execFile() or spawn() with an array of arguments and shell: false."
+    },
+    {
+      "pattern": "\\bmd5\\s*\\(",
+      "reason": "FIPS 140-3 / STIG V-222645: MD5 is cryptographically broken and not FIPS-compliant.",
+      "severity": "High",
+      "remediation": "Use the Web Crypto API with SHA-256: crypto.subtle.digest('SHA-256', data)."
+    },
+    {
+      "pattern": "password\\s*[:=]\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in source code.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords. Load credentials from environment variables (process.env.DB_PASSWORD) or a secrets manager."
+    }
+  ]
+}

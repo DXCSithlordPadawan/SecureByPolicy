@@ -1,0 +1,86 @@
+{
+  "standard": "C# and .NET 8 Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".cs"],
+  "forbidden_patterns": [
+    {
+      "pattern": "MD5\\.Create\\s*\\(|new\\s+MD5CryptoServiceProvider\\s*\\(",
+      "reason": "FIPS 140-3 / STIG V-222645: MD5 is cryptographically broken and not FIPS-compliant.",
+      "severity": "High",
+      "remediation": "Replace with SHA256.Create() or SHA384.Create() for FIPS 140-3 compliance."
+    },
+    {
+      "pattern": "SHA1\\.Create\\s*\\(|new\\s+SHA1CryptoServiceProvider\\s*\\(|new\\s+SHA1Managed\\s*\\(",
+      "reason": "FIPS 140-3 / NIST SP 800-131A: SHA-1 is deprecated and not FIPS 140-3 compliant.",
+      "severity": "High",
+      "remediation": "Replace with SHA256.Create() or stronger."
+    },
+    {
+      "pattern": "DES\\.Create\\s*\\(|new\\s+DESCryptoServiceProvider\\s*\\(",
+      "reason": "FIPS 140-3 / STIG V-222645: DES is cryptographically broken and forbidden by FIPS 140-3.",
+      "severity": "Critical",
+      "remediation": "Replace with AesGcm for authenticated encryption (AES-256-GCM)."
+    },
+    {
+      "pattern": "TripleDES\\.Create\\s*\\(|new\\s+TripleDESCryptoServiceProvider\\s*\\(",
+      "reason": "FIPS 140-3: 3DES (TDEA) is deprecated by NIST SP 800-131A and should not be used.",
+      "severity": "High",
+      "remediation": "Replace with AesGcm (AES-256-GCM) for FIPS 140-3 compliant authenticated encryption."
+    },
+    {
+      "pattern": "new\\s+RC2CryptoServiceProvider\\s*\\(",
+      "reason": "FIPS 140-3: RC2 is a broken cipher forbidden by FIPS 140-3.",
+      "severity": "Critical",
+      "remediation": "Replace with AesGcm (AES-256-GCM)."
+    },
+    {
+      "pattern": "SqlCommand\\s*\\([^)]*\\+|ExecuteQuery\\s*\\([^)]*\\+|DbCommand\\s*\\([^)]*\\+",
+      "reason": "OWASP A03: SQL query constructed via string concatenation is vulnerable to SQL injection.",
+      "severity": "Critical",
+      "remediation": "Use parameterized queries via SqlCommand with SqlParameter: cmd.Parameters.AddWithValue(\"@id\", userId), or use EF Core with LINQ."
+    },
+    {
+      "pattern": "Process\\.Start\\s*\\([^)]*\\+",
+      "reason": "OWASP A03: Process.Start() with string concatenation can enable command injection.",
+      "severity": "High",
+      "remediation": "Use ProcessStartInfo with separate FileName and Arguments properties, and validate all inputs before passing to Process.Start."
+    },
+    {
+      "pattern": "ServerCertificateCustomValidationCallback\\s*=.*=>.*true",
+      "reason": "OWASP A02 / NIST SC-8: Bypassing TLS certificate validation enables man-in-the-middle attacks.",
+      "severity": "Critical",
+      "remediation": "Remove the certificate bypass callback. Use proper certificate pinning or ensure valid CA-signed certificates are deployed."
+    },
+    {
+      "pattern": "password\\s*=\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in source code.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords. Use IConfiguration and environment variables or Azure Key Vault / AWS Secrets Manager."
+    },
+    {
+      "pattern": "\"Password\"\\s*:\\s*\"[^\"]{4,}\"",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password in appsettings/config detected.",
+      "severity": "High",
+      "remediation": "Remove credentials from appsettings.json. Use Secret Manager, Azure Key Vault, or environment variable injection."
+    },
+    {
+      "pattern": "BinaryFormatter\\.Deserialize\\s*\\(|new\\s+BinaryFormatter\\s*\\(",
+      "reason": "OWASP A08 / Microsoft Security Advisory: BinaryFormatter is unsafe and must not be used for deserialization.",
+      "severity": "Critical",
+      "remediation": "Replace BinaryFormatter with System.Text.Json, XmlSerializer, or another safe serializer. BinaryFormatter is disabled by default in .NET 7+."
+    },
+    {
+      "pattern": "new\\s+Random\\s*\\((?!.*secure)",
+      "reason": "FIPS 140-3 / NIST SP 800-90A: System.Random is not cryptographically secure.",
+      "severity": "High",
+      "remediation": "Use RandomNumberGenerator.GetBytes() or RandomNumberGenerator.GetInt32() (System.Security.Cryptography) for security-sensitive random values."
+    },
+    {
+      "pattern": "#pragma\\s+warning\\s+disable.*(?:CA2100|CA5350|CA5351|CA5358|CA5380)",
+      "reason": "STIG: Suppressing security-related code analysis warnings (SQL injection, weak crypto, TLS) is not permitted.",
+      "severity": "High",
+      "remediation": "Fix the underlying security issue instead of suppressing the warning. Approved suppressions require documented security review."
+    }
+  ]
+}
