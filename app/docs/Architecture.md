@@ -39,7 +39,9 @@ graph LR
     D & H -. Alert .-> K[Security Audit Mailbox]
 ```
 
-## 3. Data Flow: Push-to-Deploy SequenceThis sequence illustrates the transaction lifecycle from a developer's git push command to a signed production artifact.
+## 3. Data Flow: Push-to-Deploy Sequence
+
+This sequence illustrates the transaction lifecycle from a developer's `git push` command to a signed production artifact.
 
 Code snippet
 
@@ -91,16 +93,34 @@ sequenceDiagram
 	
 - Hardening: Read-only filesystem, dropped capabilities, and no-new-privileges flag.
 
-### 4.2 Registry Scanner (Trivy Integration)Trigger: Post-push webhook from the internal Container Registry.
---	Evaluation Logic:
- - **Pass:** CVSS < 7.0 OR No Vendor Fix available.Fail: CVSS ≥ 7.0 AND Vendor Fix available.
- - **Result:** Clean images are signed via Cosign; failing images are restricted to a quarantine namespace.
+### 4.2 Registry Scanner (Trivy Integration)
 
-### 4.3 Notification Manager (SMTP)Encryption: STARTTLS (NIST SC-8).
-- Redaction: Alerts contain file paths and rule IDs but **never** the actual secret or code snippet to prevent secondary leakage in audit mailboxes.
+**Trigger:** Post-push webhook from the internal Container Registry.
+
+**Evaluation Logic:**
+- **Pass:** CVSS < 7.0 OR No Vendor Fix available.
+- **Fail:** CVSS ≥ 7.0 AND Vendor Fix available.
+- **Result:** Clean images are signed via Cosign; failing images are restricted to a quarantine namespace.
+
+### 4.3 Notification Manager (SMTP)
+
+**Encryption:** STARTTLS (NIST SC-8).
+
+**Redaction:** Alerts contain file paths and rule IDs but **never** the actual secret or code snippet to prevent secondary leakage in audit mailboxes.
+
+---
 
 ## 5. Compliance Mapping
 
-ComponentSecurity ControlSourcePodman RuntimeLeast Privilege / Container IsolationCIS Level 2Evidence KeyNon-Repudiation of Local ChecksNIST SI-7STARTTLSCryptographic Protection (Transit)FIPS 140-3JSON LoggingContent-Based Audit TrailsNIST AU-12END OF ARCHITECTURE DOCUMENT
+| Component | Security Control | Source |
+| :--- | :--- | :--- |
+| Podman Runtime | Least Privilege / Container Isolation | CIS Level 2 |
+| Evidence Key | Non-Repudiation of Local Checks | NIST SI-7 |
+| STARTTLS | Cryptographic Protection (Transit) | FIPS 140-3 / NIST SC-8 |
+| JSON Logging | Content-Based Audit Trails | NIST AU-12 |
+| SHA256 Digest Pinning | Software Integrity Verification | NIST CM-2 / SI-7 |
+| Cosign Signing | Artifact Provenance | NIST SA-11 |
+
+---
 
 **End of Document**
