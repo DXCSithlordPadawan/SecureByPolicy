@@ -126,20 +126,10 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Bandit
-        run: pip install bandit bandit-sarif-formatter
-
-      - name: Run Bandit (SARIF output)
-        run: |
-          bandit -r app/scripts/ -f sarif -o bandit-results.sarif -ll -i || true
-
-      - name: Upload Bandit SARIF to GitHub Security tab
-        if: always()
       - name: Install Bandit + SARIF formatter
         run: |
           python -m pip install --upgrade pip
           pip install bandit bandit-sarif-formatter
-        run: pip install bandit bandit-sarif-formatter
 
       - name: Run Bandit (JSON) and convert to SARIF
         run: |
