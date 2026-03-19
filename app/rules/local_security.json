@@ -31,16 +31,18 @@
       "remediation": "Remove hardcoded password. Use environment variables or a secrets manager (e.g., HashiCorp Vault). Note: this pattern may produce false positives in test files (e.g., password = 'test'). Suppress with a per-line comment or add the file path to the whitelist in the SecOps-approved exclusion list."
     },
     {
-      "pattern": "\\bMD5\\b",
+      "pattern": "hashlib\\.md5\\s*\\(",
       "reason": "STIG V-222645: Weak hashing algorithm (MD5) detected. Not FIPS 140-3 compliant.",
       "severity": "High",
-      "remediation": "Replace MD5 with a FIPS-compliant algorithm such as SHA-256 (hashlib.sha256())."
+      "remediation": "Replace MD5 with a FIPS-compliant algorithm such as SHA-256 (hashlib.sha256()). For non-Python languages, see the corresponding language-specific policy file (e.g. java_policy.json, javascript_policy.json).",
+      "_scope": "Python baseline. Other languages are covered by language-specific policy files in app/rules/."
     },
     {
-      "pattern": "\\bSHA1\\b|\\bSHA-1\\b",
+      "pattern": "hashlib\\.sha1\\s*\\(",
       "reason": "STIG V-222645 / NIST SP 800-131A: Weak hashing algorithm (SHA-1) detected. Not FIPS 140-3 compliant.",
       "severity": "High",
-      "remediation": "Replace SHA-1 with a FIPS-compliant algorithm such as SHA-256 (hashlib.sha256())."
+      "remediation": "Replace SHA-1 with a FIPS-compliant algorithm such as SHA-256 (hashlib.sha256()). For non-Python languages, see the corresponding language-specific policy file (e.g. java_policy.json, javascript_policy.json).",
+      "_scope": "Python baseline. Other languages are covered by language-specific policy files in app/rules/."
     },
     {
       "pattern": "ssl\\.PROTOCOL_TLSv1(_1)?(?!_2|_3)",
