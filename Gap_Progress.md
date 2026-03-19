@@ -2,7 +2,7 @@
 
 **Project:** Modular Security Gatekeeper  
 **Reference PRD:** `SecureByPolicy_PRD.md`  
-**Last Updated:** 2026-03-19 (Session 2 — G-06 through G-09 completed)  
+**Last Updated:** 2026-03-19 (Session 3 — G-01, G-02, G-03 completed)  
 **Status:** Active  
 
 ---
@@ -25,7 +25,7 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | Actionable remediation text returned to terminal | ✅ Done | `orchestrator.py` prints `reason` + `remediation` per violation | — |
 | No self-healing / automated fixes | ✅ Done | Design explicitly rejects automation | — |
 | Language-specific scanning (Bandit, Ruff) | ⚠️ Partial | `.pre-commit-config.yaml` configures client-side Bandit/Ruff | **Gap:** Bandit/Ruff are client-side only. Server-side container does not run Bandit. Add Bandit to `orchestrator.py` or a dedicated scan stage. |
-| Notify Security Mailbox on violation | ⚠️ Partial | `notifier.py` is complete; `orchestrator.py` does **not** call it | **Gap:** `orchestrator.py` prints to terminal but never instantiates `NotificationManager`. Wire `notifier.py` into `orchestrator.py` for High/Critical violations. |
+| Notify Security Mailbox on violation | ✅ Done | `orchestrator.py` instantiates `NotificationManager` and calls `send_violation_report()` for High/Critical violations | — |
 
 ### 1.2 Container Registry Scanning (PRD §2.2)
 
@@ -34,23 +34,23 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | Scan every pushed image using Trivy | ✅ Documented | `Container_Registry_Scanning_Policy.md`, `app/manifest.json` | **Gap:** No automated CI/CD pipeline (GitHub Actions workflow, Tekton Pipeline, etc.) exists in the repository to trigger Trivy scans. A `trivy-scan.yml` workflow should be created. |
 | Hard-stop on CRITICAL/HIGH with fix available | ✅ Documented | `Container_Registry_Scanning_Policy.md §1` | Same gap as above — policy is defined but not automated in this repo |
 | Validate base image provenance (Red Hat UBI) | ✅ Documented | `dockerfile` uses UBI8 base; `Container_Registry_Scanning_Policy.md §2.1` | `@sha256` digests in `dockerfile` are placeholders (`abcd...`, `wxyz...`). **Gap:** Replace with real pinned digests before production use. |
-| Golden Image catalog | ⚠️ Partial | UBI8 is referenced | **Gap:** No formal Golden Image catalog document or approved-image list exists. Create `app/docs/Golden_Image_Catalog.md`. |
+| Golden Image catalog | ✅ Done | `app/docs/Golden_Image_Catalog.md` created with approved base images, SHA256 pinning procedure, prohibited sources, exception process | — |
 
 ### 1.3 Automated Audit & Alerting (PRD §2.3)
 
 | Requirement | Status | Evidence | Gap / Notes |
 | :--- | :---: | :--- | :--- |
-| Generate structured JSON logs for all security events | ⚠️ Partial | `notifier.py` logs to stdout when email is disabled | **Gap:** No structured JSON log file output. `orchestrator.py` should write a JSON event record (timestamp, repo, user, violation, action) to a log file or SIEM endpoint. |
-| Email Security Audit Mailbox on High/Critical | ⚠️ Partial | `notifier.py` is implemented with STARTTLS | **Gap:** `orchestrator.py` does not call `notifier.py`. See §1.1 gap above. |
+| Generate structured JSON logs for all security events | ✅ Done | `orchestrator.py: write_audit_log()` emits JSON record to stderr and optionally to `AUDIT_LOG_PATH` file | — |
+| Email Security Audit Mailbox on High/Critical | ✅ Done | `orchestrator.py` imports and calls `notifier.py: send_violation_report()` for High/Critical violations | — |
 | Formal SER workflow | ✅ Done | `app/docs/Security_Exemption_Form.md`, `app/docs/Developer_Remediation_Guide.md §4` | — |
-| SMTP authentication | ⚠️ Partial | `notifier.py` has `server.login()` commented out | **Gap:** SMTP authentication is commented out. Must be enabled for production (inject credentials via environment variables). |
+| SMTP authentication | ✅ Done | `notifier.py` reads `SMTP_USER`/`SMTP_PASS` from env vars; `server.login()` enabled when credentials are provided | — |
 
 ### 1.4 Compliance & Security Standards (PRD §3)
 
 | Standard | Requirement | Status | Gap / Notes |
 | :--- | :--- | :---: | :--- |
 | NIST AC-3 | Access enforcement on repository | ✅ Documented | Enforced via pre-receive rejection |
-| NIST AU-12 | Audit record generation | ⚠️ Partial | Stdout logging only; no persistent structured JSON log file |
+| NIST AU-12 | Audit record generation | ✅ Done | Structured JSON audit records emitted via `orchestrator.py: write_audit_log()` |
 | NIST SI-7 | Software integrity checks | ✅ Done | Evidence key + SHA256 pinning |
 | DISA STIG V-222645 | Vulnerability scanning | ✅ Documented | Trivy policy defined; CI automation gap noted above |
 | DISA STIG V-222637 | Static analysis | ⚠️ Partial | Client-side Bandit via pre-commit; not enforced server-side |
@@ -95,15 +95,15 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | :--- | :---: | :--- |
 | Validates compliance evidence key | ✅ OK | `check_evidence()` |
 | Scans diff for forbidden patterns | ✅ OK | `scan_diff()` using `local_security.json` |
-| Calls `NotificationManager` on violation | ❌ Gap | `notifier.py` exists but is never imported or called. High/Critical violations are not emailed. |
-| Structured JSON audit log written | ❌ Gap | No JSON log output; only `print()` to stdout |
+| Calls `NotificationManager` on violation | ✅ Done | `notifier.py` imported; `send_violation_report()` called for High/Critical violations |
+| Structured JSON audit log written | ✅ Done | `write_audit_log()` emits `{timestamp, repo, user, sha, event_type, violation, action}` to stderr; optionally to `AUDIT_LOG_PATH` file |
 | Handles new-branch pushes (zero hash) | ✅ OK | Checks for `0000000000000000000000000000000000000000` |
 
 ### 3.2 `app/scripts/notifier.py`
 | Check | Status | Notes |
 | :--- | :---: | :--- |
 | STARTTLS implementation (NIST SC-8) | ✅ OK | `server.starttls()` called |
-| SMTP authentication | ⚠️ Gap | `server.login()` is commented out — must be enabled for production |
+| SMTP authentication | ✅ Done | `server.login()` enabled; credentials loaded from `SMTP_USER` / `SMTP_PASS` environment variables |
 | Secrets not hardcoded | ✅ OK | Credentials loaded from environment variables |
 | Exception handling | ✅ OK | `try/except` around SMTP send |
 
@@ -131,7 +131,7 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | FIPS mode required | ✅ OK | `"fips_mode": "Required"` |
 | Runtime declared | ✅ OK | `"runtime": "Podman (Rootless)"` |
 | Version | ✅ OK | `"version": "1.0.0-RELEASE"` |
-| OWASP not in compliance baseline | ⚠️ Minor | OWASP is a PRD §3 requirement but not listed in manifest `compliance_baseline` |
+| OWASP not in compliance baseline | ✅ Done | OWASP added to `compliance_baseline` array in `app/manifest.json` |
 
 ---
 
@@ -141,9 +141,9 @@ This document tracks the gap analysis between the requirements defined in `Secur
 
 | ID | Gap | Affected PRD Section | Recommended Action |
 | :--- | :--- | :--- | :--- |
-| G-01 | `orchestrator.py` never calls `notifier.py` — no email alerts sent | PRD §2.3 | Import `NotificationManager` in `orchestrator.py`; call `send_violation_report()` for High/Critical violations |
-| G-02 | SMTP authentication commented out in `notifier.py` | PRD §2.3 | Uncomment `server.login()` and inject credentials via environment variable |
-| G-03 | No structured JSON audit log — stdout only | PRD §2.3 | Add JSON log writer to `orchestrator.py` emitting `{timestamp, repo, user, sha, violation, action}` |
+| ~~G-01~~ | ~~`orchestrator.py` never calls `notifier.py` — no email alerts sent~~ | ~~PRD §2.3~~ | ✅ **Resolved:** `NotificationManager` imported in `orchestrator.py`; `send_violation_report()` called for High/Critical violations |
+| ~~G-02~~ | ~~SMTP authentication commented out in `notifier.py`~~ | ~~PRD §2.3~~ | ✅ **Resolved:** `server.login()` enabled; `SMTP_USER`/`SMTP_PASS` injected via environment variables |
+| ~~G-03~~ | ~~No structured JSON audit log — stdout only~~ | ~~PRD §2.3~~ | ✅ **Resolved:** `write_audit_log()` added to `orchestrator.py`; emits `{timestamp, repo, user, sha, violation, action}` to stderr and optional `AUDIT_LOG_PATH` file |
 | G-04 | Dockerfile `@sha256` digests are placeholders | PRD §2.2 | Replace `abcd...` / `wxyz...` with real verified UBI8 digests before production |
 | G-05 | No CI/CD workflow to trigger Trivy registry scans | PRD §2.2 | Create `.github/workflows/trivy-scan.yml` (or equivalent pipeline config) |
 
@@ -151,10 +151,10 @@ This document tracks the gap analysis between the requirements defined in `Secur
 
 | ID | Gap | Recommended Action |
 | :--- | :--- | :--- |
-| G-06 | No Golden Image Catalog | Create `app/docs/Golden_Image_Catalog.md` listing approved base images with SHA256 digests |
-| G-07 | No Incident Response Plan | Create `app/docs/Incident_Response_Plan.md` covering gate failure, active exploit, and break-glass scenarios |
-| G-08 | No Threat Model | Create `app/docs/Threat_Model.md` mapping attacker personas and mitigations for the gatekeeper itself |
-| G-09 | No Metrics Tracking (PRD §5) | Create `app/docs/Metrics_Dashboard.md` with KPIs: Zero Bypass rate, Remediation Speed, Audit Readiness |
+| ~~G-06~~ | ~~No Golden Image Catalog~~ | ✅ **Resolved:** `app/docs/Golden_Image_Catalog.md` created |
+| ~~G-07~~ | ~~No Incident Response Plan~~ | ✅ **Resolved:** `app/docs/Incident_Response_Plan.md` created |
+| ~~G-08~~ | ~~No Threat Model~~ | ✅ **Resolved:** `app/docs/Threat_Model.md` created |
+| ~~G-09~~ | ~~No Metrics Tracking (PRD §5)~~ | ✅ **Resolved:** `app/docs/Metrics_Dashboard.md` created |
 
 ### Priority 3 — Enhancement Gaps
 
@@ -163,7 +163,7 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | G-10 | Server-side Bandit scan not implemented | Integrate Bandit into `orchestrator.py` or a dedicated scan stage in the container |
 | G-11 | Cosign image signing not implemented (PRD §2.2) | Implement Cosign signing step post clean Trivy scan |
 | G-12 | `pre-receive.bash` uses image tag, not digest | Pin `git-policy-enforcer` image reference to `@sha256:<digest>` |
-| G-13 | `app/manifest.json` missing OWASP in compliance baseline | Add `"OWASP"` to `compliance_baseline` array |
+| ~~G-13~~ | ~~`app/manifest.json` missing OWASP in compliance baseline~~ | ✅ **Resolved:** `"OWASP"` added to `compliance_baseline` array |
 
 ---
 
@@ -188,10 +188,15 @@ This document tracks the gap analysis between the requirements defined in `Secur
 - [x] Created `app/docs/Threat_Model.md` — STRIDE analysis for all gatekeeper components; risk summary; recommended mitigations; compliance mapping
 - [x] Created `app/docs/Metrics_Dashboard.md` — KPI framework for Zero Bypass Rate, Remediation Speed, and Audit Readiness (PRD §5); measurement methodology; tracking tables
 
+### Completed in Session 3
+- [x] **G-01 resolved:** Wired `notifier.py` into `orchestrator.py` — imported `NotificationManager`; `send_violation_report()` called for High/Critical pattern violations and evidence-missing rejections
+- [x] **G-02 resolved:** Enabled SMTP authentication in `notifier.py` — added `SMTP_USER`/`SMTP_PASS` env vars; `server.login()` executes when both credentials are present
+- [x] **G-03 resolved:** Added `write_audit_log()` to `orchestrator.py` — emits structured JSON `{timestamp, repo, user, sha, event_type, violation, action}` to stderr on every rejection; writes to `AUDIT_LOG_PATH` file when env var is set
+
 ### Remaining Gaps (Prioritised)
-- [ ] **G-01:** Wire `notifier.py` into `orchestrator.py` (Priority 1 — Security)
-- [ ] **G-02:** Enable SMTP authentication in `notifier.py` (Priority 1 — Security)
-- [ ] **G-03:** Add structured JSON audit logging to `orchestrator.py` (Priority 1 — Compliance)
+- [x] **G-01:** Wire `notifier.py` into `orchestrator.py` (Priority 1 — Security)
+- [x] **G-02:** Enable SMTP authentication in `notifier.py` (Priority 1 — Security)
+- [x] **G-03:** Add structured JSON audit logging to `orchestrator.py` (Priority 1 — Compliance)
 - [ ] **G-04:** Replace placeholder SHA256 digests in `dockerfile` with real UBI8 digests (Priority 1 — Security)
 - [ ] **G-05:** Create Trivy scan CI/CD workflow (Priority 1 — Functional)
 - [x] **G-06:** Create `app/docs/Golden_Image_Catalog.md` (Priority 2 — Documentation)
