@@ -1,3 +1,8 @@
+# Use a digest-pinned reference for the Python base image
+FROM registry.access.redhat.com/ubi8/python-311@sha256:<REAL_DIGEST>
+
+# Use a digest-pinned reference for the minimal Python base image
+FROM registry.access.redhat.com/ubi8/python-311-minimal@sha256:<REAL_DIGEST>
 # STAGE 1: Build Environment (NIST CM-2 compliant)
 # Digest pinned to registry.access.redhat.com/ubi8/python-311:latest as of 2026-03-19.
 # Refresh with:

@@ -71,6 +71,22 @@ class PolicyEnforcer:
         msg = subprocess.check_output(["git", "log", "-1", "--pretty=%B", commit_hash]).decode()
         return self.evidence_key in msg
 
+    def _load_language_policy(self, policy_filename: str) -> dict:
+        """Loads and caches a language-specific policy JSON file from the rules directory."""
+        if policy_filename in self._policy_cache:
+            return self._policy_cache[policy_filename]
+        policy_path = self.rules_dir / policy_filename
+        if policy_path.exists():
+            with open(policy_path, 'r') as f:
+                policy = json.load(f)
+            self._policy_cache[policy_filename] = policy
+        else:
+            print(f"[WARN] Language policy not found: {policy_path}", file=sys.stderr)
+            self._policy_cache[policy_filename] = {}
+        return self._policy_cache[policy_filename]
+
+    def scan_diff(self, commit_hash):
+        """Scans the full diff of a commit against the baseline forbidden patterns."""
     # Source code file extensions checked by the baseline forbidden-pattern scan.
     # Documentation, policy JSON, and configuration files are excluded to prevent
     # false positives when those files legitimately reference algorithm names (e.g.

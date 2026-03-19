@@ -1,3 +1,13 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.egg-info/
+dist/
+build/
+.eggs/
+*.egg
 # Python byte-compiled / optimised / DLL files
 __pycache__/
 *.py[cod]
@@ -12,3 +22,26 @@ build/
 .venv/
 venv/
 env/
+.env
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+*.lcov
+
+# Editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Build / distribution
+*.tar.gz
+*.zip
+
+# Temporary files
+*.tmp
+*.log
