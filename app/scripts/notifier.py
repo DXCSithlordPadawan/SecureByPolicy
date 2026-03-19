@@ -7,6 +7,8 @@ class NotificationManager:
     def __init__(self):
         self.smtp_server = os.getenv("SMTP_SERVER")
         self.smtp_port = int(os.getenv("SMTP_PORT", 587))
+        self.smtp_user = os.getenv("SMTP_USER", "")
+        self.smtp_pass = os.getenv("SMTP_PASS", "")
         self.sender = os.getenv("ALERT_SENDER", "security-gate@company.com")
         self.recipient = os.getenv("AUDIT_MAILBOX", "security-audit@company.com")
         self.enabled = os.getenv("MAIL_ENABLED", "false").lower() == "true"
@@ -37,7 +39,8 @@ class NotificationManager:
         try:
             with smtplib.SMTP(self.smtp_server, self.smtp_port) as server:
                 server.starttls() # NIST SC-8 Compliance
-                # server.login(user, pass) # Uncomment if relay requires auth
+                if self.smtp_user and self.smtp_pass:
+                    server.login(self.smtp_user, self.smtp_pass)
                 server.send_message(msg)
         except Exception as e:
             print(f"Failed to send security alert: {str(e)}")
@@ -45,3 +48,4 @@ class NotificationManager:
 # Usage example for registry scanner integration:
 # nm = NotificationManager()
 # nm.send_violation_report("prod-app", "jdoe", {"severity": "Critical", "reason": "CVE-2026-1111"})
+# Credentials are injected via SMTP_USER and SMTP_PASS environment variables.
