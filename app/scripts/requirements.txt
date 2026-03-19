@@ -1,0 +1,12 @@
+# Python dependencies for the SecureByPolicy Modular Security Gatekeeper
+# All packages must be verified against the internal approved software list
+# before use in a FIPS 140-3 / STIG-compliant environment.
+
+# Core dependencies (stdlib-only policy enforcer has minimal requirements)
+# Add third-party packages here if future scanning tools are integrated.
+
+# Example: Bandit for static analysis (install separately on dev workstations)
+# bandit==1.7.9
+
+# Example: Ruff for fast Python linting (install separately on dev workstations)
+# ruff==0.4.7

@@ -1,7 +1,7 @@
 {
   "project_name": "Modular Git Policy Enforcer",
   "version": "1.0.0-RELEASE",
-  "compliance_baseline": ["NIST-800-53", "DISA-STIG-V2", "FIPS-140-3", "CIS-L2"],
+  "compliance_baseline": ["NIST-800-53", "DISA-STIG-V2", "FIPS-140-3", "CIS-L2", "OWASP"],
   "infrastructure": {
     "runtime": "Podman (Rootless)",
     "base_image": "ubi8/python-311-minimal",
