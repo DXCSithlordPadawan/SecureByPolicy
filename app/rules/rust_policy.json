@@ -1,0 +1,68 @@
+{
+  "standard": "Rust Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".rs"],
+  "forbidden_patterns": [
+    {
+      "pattern": "unsafe\\s*\\{",
+      "reason": "OWASP A06 / CIS Benchmark: unsafe blocks bypass Rust's memory safety guarantees and can introduce vulnerabilities.",
+      "severity": "High",
+      "remediation": "Minimize and encapsulate unsafe code. Isolate it behind safe abstractions, document the safety invariants in comments, and undergo security review before merging."
+    },
+    {
+      "pattern": "extern\\s+\"C\"\\s*\\{",
+      "reason": "OWASP A06: FFI (Foreign Function Interface) code bypasses Rust's safety guarantees and requires careful review.",
+      "severity": "Medium",
+      "remediation": "Wrap all FFI calls in safe Rust abstractions. Validate all inputs and outputs at the FFI boundary. Document safety requirements thoroughly."
+    },
+    {
+      "pattern": "\\.unwrap\\s*\\(\\s*\\)",
+      "reason": "OWASP A05 / CIS Benchmark: unwrap() panics on None/Err values, causing denial of service in production.",
+      "severity": "Medium",
+      "remediation": "Replace unwrap() with proper error propagation using ? operator, expect() with a descriptive message, or pattern matching (match/if let)."
+    },
+    {
+      "pattern": "\\.expect\\s*\\(\\s*\"\"\\s*\\)",
+      "reason": "OWASP A05: expect(\"\") with an empty message provides no context when a panic occurs.",
+      "severity": "Low",
+      "remediation": "Provide a meaningful message: .expect(\"Failed to parse config: missing database URL\")."
+    },
+    {
+      "pattern": "Command::new\\s*\\([^)]*\\).*\\.arg\\s*\\([^)]*user|Command::new\\s*\\([^)]*user",
+      "reason": "OWASP A03: Using user-controlled input in Command arguments can enable command injection.",
+      "severity": "High",
+      "remediation": "Validate and sanitize all inputs before passing to Command. Use allowlists to restrict acceptable values."
+    },
+    {
+      "pattern": "md5::|extern\\s+crate\\s+md5",
+      "reason": "FIPS 140-3 / STIG V-222645: MD5 is cryptographically broken and not FIPS-compliant.",
+      "severity": "High",
+      "remediation": "Replace with sha2::Sha256, sha2::Sha384, or sha3::Sha256 crates for FIPS 140-3 compliant hashing."
+    },
+    {
+      "pattern": "sha1::|extern\\s+crate\\s+sha1",
+      "reason": "FIPS 140-3 / NIST SP 800-131A: SHA-1 is deprecated and not FIPS 140-3 compliant.",
+      "severity": "High",
+      "remediation": "Replace with sha2::Sha256 or stronger."
+    },
+    {
+      "pattern": "rand::thread_rng\\s*\\(\\s*\\).*(?:gen|sample)|use\\s+rand::",
+      "reason": "FIPS 140-3 / NIST SP 800-90A: The rand crate's thread_rng is not FIPS-certified for security-sensitive operations.",
+      "severity": "High",
+      "remediation": "Use the ring or aws-lc-rs crate for FIPS-validated random number generation in security-sensitive contexts."
+    },
+    {
+      "pattern": "password\\s*=\\s*['\"][^'\"]{4,}['\"]|password\\s*:\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in source code.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords. Use std::env::var(\"DB_PASSWORD\") or a secrets management crate."
+    },
+    {
+      "pattern": "allow\\s*\\(\\s*clippy::.*unsafe|allow\\s*\\(\\s*unused_unsafe",
+      "reason": "OWASP A05: Suppressing unsafe code lints can hide security vulnerabilities.",
+      "severity": "Medium",
+      "remediation": "Address the clippy warning rather than suppressing it. If suppression is justified, document the safety reasoning."
+    }
+  ]
+}
