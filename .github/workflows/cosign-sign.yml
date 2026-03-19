@@ -1,0 +1,85 @@
+---
+# Cosign Image Signing Workflow
+# Satisfies: PRD §2.2 — Cosign image signing post clean Trivy scan
+# Compliance: NIST SI-7 (Software Integrity), NIST CM-2 (Baseline Configuration)
+#
+# Signs the production container image with Cosign (keyless, Sigstore OIDC)
+# after a successful Trivy scan.  Only runs on pushes to main / release branches.
+
+name: Cosign Image Sign
+
+on:
+  workflow_run:
+    workflows:
+      - "Trivy Container Scan"
+    types:
+      - completed
+    branches:
+      - main
+      - "release/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  id-token: write      # required for OIDC / keyless signing
+  packages: write      # required to push the signed image to GHCR
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/git-policy-enforcer
+
+jobs:
+  sign-image:
+    name: Sign Container Image with Cosign
+    runs-on: ubuntu-latest
+    # Only run after a successful Trivy scan (or manual dispatch)
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      github.event.workflow_run.conclusion == 'success'
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push image to GHCR
+        id: build-push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: dockerfile
+          push: true
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+            org.opencontainers.image.revision=${{ github.sha }}
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign image (keyless OIDC via Sigstore)
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign sign --yes \
+            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-push.outputs.digest }}"
+
+      - name: Verify signature
+        env:
+          COSIGN_EXPERIMENTAL: "true"
+        run: |
+          cosign verify \
+            --certificate-identity-regexp "https://github.com/${{ github.repository }}" \
+            --certificate-oidc-issuer "https://token.actions.githubusercontent.com" \
+            "${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build-push.outputs.digest }}"
+
+      - name: Output signed image digest
+        run: |
+          echo "✅ Signed image digest: ${{ steps.build-push.outputs.digest }}"
+          echo "Pin this digest in dockerfile and pre-receive.bash for production use."

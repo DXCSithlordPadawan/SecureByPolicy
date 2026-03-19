@@ -2,7 +2,7 @@
 
 **Project:** Modular Security Gatekeeper  
 **Reference PRD:** `SecureByPolicy_PRD.md`  
-**Last Updated:** 2026-03-19 (Session 3 — G-01, G-02, G-03 completed)  
+**Last Updated:** 2026-03-19 (Session 4 — G-05, G-10, G-11, G-12 completed; G-04 documented)  
 **Status:** Active  
 
 ---
@@ -24,16 +24,16 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | Scan for forbidden patterns | ✅ Done | `orchestrator.py: scan_diff()` + `app/rules/local_security.json` | 8 rules covering secrets, weak crypto, and deprecated TLS |
 | Actionable remediation text returned to terminal | ✅ Done | `orchestrator.py` prints `reason` + `remediation` per violation | — |
 | No self-healing / automated fixes | ✅ Done | Design explicitly rejects automation | — |
-| Language-specific scanning (Bandit, Ruff) | ⚠️ Partial | `.pre-commit-config.yaml` configures client-side Bandit/Ruff | **Gap:** Bandit/Ruff are client-side only. Server-side container does not run Bandit. Add Bandit to `orchestrator.py` or a dedicated scan stage. |
+| Language-specific scanning (Bandit, Ruff) | ✅ Done | `.pre-commit-config.yaml` (client-side) + `orchestrator.py: scan_with_bandit()` (server-side) | Server-side Bandit scan added in `orchestrator.py`; `bandit==1.7.9` added to `requirements.txt` |
 | Notify Security Mailbox on violation | ✅ Done | `orchestrator.py` instantiates `NotificationManager` and calls `send_violation_report()` for High/Critical violations | — |
 
 ### 1.2 Container Registry Scanning (PRD §2.2)
 
 | Requirement | Status | Evidence | Gap / Notes |
 | :--- | :---: | :--- | :--- |
-| Scan every pushed image using Trivy | ✅ Documented | `Container_Registry_Scanning_Policy.md`, `app/manifest.json` | **Gap:** No automated CI/CD pipeline (GitHub Actions workflow, Tekton Pipeline, etc.) exists in the repository to trigger Trivy scans. A `trivy-scan.yml` workflow should be created. |
-| Hard-stop on CRITICAL/HIGH with fix available | ✅ Documented | `Container_Registry_Scanning_Policy.md §1` | Same gap as above — policy is defined but not automated in this repo |
-| Validate base image provenance (Red Hat UBI) | ✅ Documented | `dockerfile` uses UBI8 base; `Container_Registry_Scanning_Policy.md §2.1` | `@sha256` digests in `dockerfile` are placeholders (`abcd...`, `wxyz...`). **Gap:** Replace with real pinned digests before production use. |
+| Scan every pushed image using Trivy | ✅ Done | `Container_Registry_Scanning_Policy.md`, `app/manifest.json`, `.github/workflows/trivy-scan.yml` | CI/CD workflow created; triggers on push/PR/schedule |
+| Hard-stop on CRITICAL/HIGH with fix available | ✅ Done | `Container_Registry_Scanning_Policy.md §1`, `.github/workflows/trivy-scan.yml` (`exit-code: "1"`) | Workflow enforces hard-stop on CRITICAL/HIGH |
+| Validate base image provenance (Red Hat UBI) | ⚠️ Partial | `dockerfile` uses UBI8 base; `Container_Registry_Scanning_Policy.md §2.1` | `@sha256` digests in `dockerfile` are placeholders (`abcd...`, `wxyz...`). **Gap (G-04):** Operator must replace with real pinned digests obtained via `skopeo inspect` before production use. Instructions added as comments in `dockerfile`. |
 | Golden Image catalog | ✅ Done | `app/docs/Golden_Image_Catalog.md` created with approved base images, SHA256 pinning procedure, prohibited sources, exception process | — |
 
 ### 1.3 Automated Audit & Alerting (PRD §2.3)
@@ -53,7 +53,7 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | NIST AU-12 | Audit record generation | ✅ Done | Structured JSON audit records emitted via `orchestrator.py: write_audit_log()` |
 | NIST SI-7 | Software integrity checks | ✅ Done | Evidence key + SHA256 pinning |
 | DISA STIG V-222645 | Vulnerability scanning | ✅ Documented | Trivy policy defined; CI automation gap noted above |
-| DISA STIG V-222637 | Static analysis | ⚠️ Partial | Client-side Bandit via pre-commit; not enforced server-side |
+| DISA STIG V-222637 | Static analysis | ✅ Done | Client-side Bandit via pre-commit; server-side `scan_with_bandit()` added to `orchestrator.py` |
 | FIPS 140-3 | FIPS-validated crypto modules | ✅ Done | UBI8 base image is FIPS-capable; `dockerfile` labels `fips=enabled` |
 | CIS Level 2 | Container hardening | ✅ Done | `pre-receive.bash` uses `--cap-drop=all`, `--read-only`, `--security-opt no-new-privileges` |
 | OWASP | Secrets, injection, insecure deps | ✅ Done | Gitleaks + orchestrator pattern scan |
@@ -113,7 +113,7 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | Rootless Podman with security flags | ✅ OK | `--cap-drop=all --read-only --security-opt no-new-privileges` |
 | SMTP_PASS not hardcoded | ✅ OK | Only `SMTP_SERVER` is set; `SMTP_PASS` is NOT in the shim (correct) |
 | Rules mounted read-only | ✅ OK | `-v /etc/git-policy/rules:/app/rules:ro` |
-| Image version pinned | ⚠️ Partial | `git-policy-enforcer:1.0` uses a tag; should use a SHA256 digest for immutability |
+| Image version pinned | ✅ Done | `pre-receive.bash` reads `IMAGE_DIGEST` env var; when set, uses `git-policy-enforcer@${IMAGE_DIGEST}`; instructions added as comments |
 
 ### 3.4 `dockerfile`
 | Check | Status | Notes |
@@ -144,8 +144,8 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | ~~G-01~~ | ~~`orchestrator.py` never calls `notifier.py` — no email alerts sent~~ | ~~PRD §2.3~~ | ✅ **Resolved:** `NotificationManager` imported in `orchestrator.py`; `send_violation_report()` called for High/Critical violations |
 | ~~G-02~~ | ~~SMTP authentication commented out in `notifier.py`~~ | ~~PRD §2.3~~ | ✅ **Resolved:** `server.login()` enabled; `SMTP_USER`/`SMTP_PASS` injected via environment variables |
 | ~~G-03~~ | ~~No structured JSON audit log — stdout only~~ | ~~PRD §2.3~~ | ✅ **Resolved:** `write_audit_log()` added to `orchestrator.py`; emits `{timestamp, repo, user, sha, violation, action}` to stderr and optional `AUDIT_LOG_PATH` file |
-| G-04 | Dockerfile `@sha256` digests are placeholders | PRD §2.2 | Replace `abcd...` / `wxyz...` with real verified UBI8 digests before production |
-| G-05 | No CI/CD workflow to trigger Trivy registry scans | PRD §2.2 | Create `.github/workflows/trivy-scan.yml` (or equivalent pipeline config) |
+| G-04 | Dockerfile `@sha256` digests are placeholders | PRD §2.2 | **Operator action required:** Replace `abcd...` / `wxyz...` with real verified UBI8 digests. Instructions added as inline comments in `dockerfile`. Use `skopeo inspect` to retrieve digests from the registry. |
+| ~~G-05~~ | ~~No CI/CD workflow to trigger Trivy registry scans~~ | ~~PRD §2.2~~ | ✅ **Resolved:** `.github/workflows/trivy-scan.yml` created — triggers on push/PR to `main`/`release/**` and weekly on schedule |
 
 ### Priority 2 — Documentation Gaps
 
@@ -160,9 +160,9 @@ This document tracks the gap analysis between the requirements defined in `Secur
 
 | ID | Gap | Recommended Action |
 | :--- | :--- | :--- |
-| G-10 | Server-side Bandit scan not implemented | Integrate Bandit into `orchestrator.py` or a dedicated scan stage in the container |
-| G-11 | Cosign image signing not implemented (PRD §2.2) | Implement Cosign signing step post clean Trivy scan |
-| G-12 | `pre-receive.bash` uses image tag, not digest | Pin `git-policy-enforcer` image reference to `@sha256:<digest>` |
+| ~~G-10~~ | ~~Server-side Bandit scan not implemented~~ | ✅ **Resolved:** `scan_with_bandit()` added to `orchestrator.py`; `bandit==1.7.9` added to `requirements.txt`; graceful fallback if Bandit not in PATH |
+| ~~G-11~~ | ~~Cosign image signing not implemented (PRD §2.2)~~ | ✅ **Resolved:** `.github/workflows/cosign-sign.yml` created — runs after successful Trivy scan; keyless Sigstore OIDC signing; pushes signed image to GHCR with digest pinning output |
+| ~~G-12~~ | ~~`pre-receive.bash` uses image tag, not digest~~ | ✅ **Resolved:** `pre-receive.bash` updated to read `IMAGE_DIGEST` env var; uses `git-policy-enforcer@${IMAGE_DIGEST}` when set; instructions and `podman inspect` command added as comments |
 | ~~G-13~~ | ~~`app/manifest.json` missing OWASP in compliance baseline~~ | ✅ **Resolved:** `"OWASP"` added to `compliance_baseline` array |
 
 ---
@@ -193,19 +193,26 @@ This document tracks the gap analysis between the requirements defined in `Secur
 - [x] **G-02 resolved:** Enabled SMTP authentication in `notifier.py` — added `SMTP_USER`/`SMTP_PASS` env vars; `server.login()` executes when both credentials are present
 - [x] **G-03 resolved:** Added `write_audit_log()` to `orchestrator.py` — emits structured JSON `{timestamp, repo, user, sha, event_type, violation, action}` to stderr on every rejection; writes to `AUDIT_LOG_PATH` file when env var is set
 
+### Completed in Session 4
+- [x] **G-05 resolved:** Created `.github/workflows/trivy-scan.yml` — builds the container image and runs Trivy on every push/PR to `main`/`release/**` and weekly on schedule; hard-stops on CRITICAL/HIGH; uploads SARIF results to GitHub Security tab
+- [x] **G-10 resolved:** Added `scan_with_bandit()` to `orchestrator.py` — extracts changed Python files from each commit, runs Bandit with JSON output, rejects push on any finding; graceful fallback when Bandit binary is absent; `bandit==1.7.9` added to `requirements.txt`
+- [x] **G-11 resolved:** Created `.github/workflows/cosign-sign.yml` — keyless Sigstore OIDC signing triggered after successful Trivy scan; builds image, pushes to GHCR, signs with `cosign sign`, verifies signature, and outputs pinnable digest
+- [x] **G-12 resolved:** Updated `pre-receive.bash` — reads `IMAGE_DIGEST` env var; when set, container is launched as `git-policy-enforcer@${IMAGE_DIGEST}` for digest-pinned immutability; fallback to `:1.0` tag with instructions
+- [x] **G-04 documented:** Added inline `# NOTE (G-04)` comments to both `FROM` lines in `dockerfile` explaining how to obtain and pin real UBI8 SHA256 digests using `skopeo inspect` (registry unreachable from build environment; operator action required)
+
 ### Remaining Gaps (Prioritised)
 - [x] **G-01:** Wire `notifier.py` into `orchestrator.py` (Priority 1 — Security)
 - [x] **G-02:** Enable SMTP authentication in `notifier.py` (Priority 1 — Security)
 - [x] **G-03:** Add structured JSON audit logging to `orchestrator.py` (Priority 1 — Compliance)
-- [ ] **G-04:** Replace placeholder SHA256 digests in `dockerfile` with real UBI8 digests (Priority 1 — Security)
-- [ ] **G-05:** Create Trivy scan CI/CD workflow (Priority 1 — Functional)
+- [ ] **G-04:** Replace placeholder SHA256 digests in `dockerfile` with real UBI8 digests — operator action required; instructions added inline (Priority 1 — Security)
+- [x] **G-05:** Create Trivy scan CI/CD workflow (Priority 1 — Functional)
 - [x] **G-06:** Create `app/docs/Golden_Image_Catalog.md` (Priority 2 — Documentation)
 - [x] **G-07:** Create `app/docs/Incident_Response_Plan.md` (Priority 2 — Documentation)
 - [x] **G-08:** Create `app/docs/Threat_Model.md` (Priority 2 — Documentation)
 - [x] **G-09:** Create `app/docs/Metrics_Dashboard.md` (Priority 2 — Documentation)
-- [ ] **G-10:** Integrate server-side Bandit scanning (Priority 3 — Enhancement)
-- [ ] **G-11:** Implement Cosign image signing workflow (Priority 3 — Enhancement)
-- [ ] **G-12:** Pin `pre-receive.bash` image reference to SHA256 digest (Priority 3 — Enhancement)
+- [x] **G-10:** Integrate server-side Bandit scanning (Priority 3 — Enhancement)
+- [x] **G-11:** Implement Cosign image signing workflow (Priority 3 — Enhancement)
+- [x] **G-12:** Pin `pre-receive.bash` image reference to SHA256 digest (Priority 3 — Enhancement)
 - [x] **G-13:** Add OWASP to `app/manifest.json` compliance baseline (Priority 3 — Minor)
 
 ---
