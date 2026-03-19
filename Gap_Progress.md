@@ -2,7 +2,7 @@
 
 **Project:** Modular Security Gatekeeper  
 **Reference PRD:** `SecureByPolicy_PRD.md`  
-**Last Updated:** 2026-03-19  
+**Last Updated:** 2026-03-19 (Session 2 — G-06 through G-09 completed)  
 **Status:** Active  
 
 ---
@@ -81,10 +81,10 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | `app/rules/local_security.json` | ✅ Created | Referenced by `orchestrator.py` and docs but file/directory were absent; created with 8 rules |
 | `app/scripts/requirements.txt` | ✅ Created | Referenced in `dockerfile` (`COPY requirements.txt .`) but file was absent |
 | `.pre-commit-config.yaml` | ✅ Created | Referenced in `Draft-Email.md` and `Developer_Remediation_Guide.md` but file was absent; created with Gitleaks, Bandit, Ruff, Hadolint, and evidence-stamp hooks |
-| `app/docs/Golden_Image_Catalog.md` | ❌ Missing | **Gap:** Formally document approved base images with verified SHA256 digests |
-| `app/docs/Incident_Response_Plan.md` | ❌ Missing | **Gap:** No incident response procedure for security gate failures or active exploits |
-| `app/docs/Threat_Model.md` | ❌ Missing | **Gap:** No threat model or attack-surface analysis for the gatekeeper itself |
-| `app/docs/Metrics_Dashboard.md` | ❌ Missing | **Gap:** PRD §5 success metrics (Zero Bypass, Remediation Speed, Audit Readiness) have no tracking mechanism |
+| `app/docs/Golden_Image_Catalog.md` | ✅ Created | Approved base images with SHA256 digest pinning procedure, prohibited sources, exception process, and monthly maintenance procedure |
+| `app/docs/Incident_Response_Plan.md` | ✅ Created | Covers gate failure, active exploit/bypass, and break-glass scenarios with severity classification, containment steps, audit procedure, and incident report template |
+| `app/docs/Threat_Model.md` | ✅ Created | STRIDE analysis of all gatekeeper components with risk summary, recommended mitigations, and compliance mapping |
+| `app/docs/Metrics_Dashboard.md` | ✅ Created | KPI framework for Zero Bypass Rate, Remediation Speed, and Audit Readiness (PRD §5); includes measurement methodology, tracking tables, and weekly snapshot template |
 
 ---
 
@@ -182,16 +182,22 @@ This document tracks the gap analysis between the requirements defined in `Secur
 - [x] Created `.pre-commit-config.yaml` — client-side hook configuration referenced in docs
 - [x] Created `Gap_Progress.md` — this document
 
+### Completed in Session 2
+- [x] Created `app/docs/Golden_Image_Catalog.md` — approved base images, SHA256 pinning procedure, prohibited sources, exception process, compliance mapping
+- [x] Created `app/docs/Incident_Response_Plan.md` — gate failure, active exploit, and break-glass procedures; severity classification; incident report template
+- [x] Created `app/docs/Threat_Model.md` — STRIDE analysis for all gatekeeper components; risk summary; recommended mitigations; compliance mapping
+- [x] Created `app/docs/Metrics_Dashboard.md` — KPI framework for Zero Bypass Rate, Remediation Speed, and Audit Readiness (PRD §5); measurement methodology; tracking tables
+
 ### Remaining Gaps (Prioritised)
 - [ ] **G-01:** Wire `notifier.py` into `orchestrator.py` (Priority 1 — Security)
 - [ ] **G-02:** Enable SMTP authentication in `notifier.py` (Priority 1 — Security)
 - [ ] **G-03:** Add structured JSON audit logging to `orchestrator.py` (Priority 1 — Compliance)
 - [ ] **G-04:** Replace placeholder SHA256 digests in `dockerfile` with real UBI8 digests (Priority 1 — Security)
 - [ ] **G-05:** Create Trivy scan CI/CD workflow (Priority 1 — Functional)
-- [ ] **G-06:** Create `app/docs/Golden_Image_Catalog.md` (Priority 2 — Documentation)
-- [ ] **G-07:** Create `app/docs/Incident_Response_Plan.md` (Priority 2 — Documentation)
-- [ ] **G-08:** Create `app/docs/Threat_Model.md` (Priority 2 — Documentation)
-- [ ] **G-09:** Create `app/docs/Metrics_Dashboard.md` (Priority 2 — Documentation)
+- [x] **G-06:** Create `app/docs/Golden_Image_Catalog.md` (Priority 2 — Documentation)
+- [x] **G-07:** Create `app/docs/Incident_Response_Plan.md` (Priority 2 — Documentation)
+- [x] **G-08:** Create `app/docs/Threat_Model.md` (Priority 2 — Documentation)
+- [x] **G-09:** Create `app/docs/Metrics_Dashboard.md` (Priority 2 — Documentation)
 - [ ] **G-10:** Integrate server-side Bandit scanning (Priority 3 — Enhancement)
 - [ ] **G-11:** Implement Cosign image signing workflow (Priority 3 — Enhancement)
 - [ ] **G-12:** Pin `pre-receive.bash` image reference to SHA256 digest (Priority 3 — Enhancement)
