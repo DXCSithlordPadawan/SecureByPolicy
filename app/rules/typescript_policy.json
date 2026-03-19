@@ -1,0 +1,74 @@
+{
+  "standard": "TypeScript Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".ts"],
+  "forbidden_patterns": [
+    {
+      "pattern": "\\beval\\s*\\(",
+      "reason": "OWASP A03: eval() with user input enables arbitrary code execution.",
+      "severity": "Critical",
+      "remediation": "Remove eval(). Use JSON.parse() for JSON data, or refactor to eliminate dynamic code evaluation."
+    },
+    {
+      "pattern": "new\\s+Function\\s*\\(",
+      "reason": "OWASP A03: The Function constructor is equivalent to eval() and allows arbitrary code execution.",
+      "severity": "Critical",
+      "remediation": "Refactor to use named or arrow functions rather than the dynamic Function constructor."
+    },
+    {
+      "pattern": "\\.innerHTML\\s*=\\s*(?!['\"]\\s*['\"])",
+      "reason": "OWASP A03: Assigning unsanitized data to innerHTML enables XSS attacks.",
+      "severity": "High",
+      "remediation": "Use element.textContent for plain text or sanitize HTML with DOMPurify.sanitize() before assigning to innerHTML."
+    },
+    {
+      "pattern": "Math\\.random\\s*\\(",
+      "reason": "FIPS 140-3 / NIST SP 800-90A: Math.random() is not cryptographically secure.",
+      "severity": "High",
+      "remediation": "Use the Web Crypto API: crypto.getRandomValues(new Uint8Array(32)) or crypto.randomUUID() for security-sensitive random values."
+    },
+    {
+      "pattern": "localStorage\\.setItem\\s*\\([^)]*(?:token|jwt|session|password|secret|key)",
+      "reason": "OWASP A02 / CIS Benchmark: Storing authentication tokens in localStorage exposes them to XSS attacks.",
+      "severity": "High",
+      "remediation": "Store authentication tokens in HttpOnly, Secure, SameSite cookies."
+    },
+    {
+      "pattern": "sessionStorage\\.setItem\\s*\\([^)]*(?:token|jwt|session|password|secret|key)",
+      "reason": "OWASP A02: Storing tokens in sessionStorage exposes them to XSS attacks.",
+      "severity": "High",
+      "remediation": "Store authentication tokens in HttpOnly, Secure, SameSite cookies."
+    },
+    {
+      "pattern": ":\\s*any(?:\\s*[;,=\\)\\}]|\\s*$)",
+      "reason": "OWASP A05 / CIS Benchmark: TypeScript 'any' type disables type safety and static analysis, masking potential security vulnerabilities.",
+      "severity": "Medium",
+      "remediation": "Replace 'any' with a specific type or 'unknown'. Enable noImplicitAny: true in tsconfig.json. Use type guards for runtime narrowing."
+    },
+    {
+      "pattern": "as\\s+any(?:\\s*[;,=\\)\\}\\[]|\\s*$)",
+      "reason": "OWASP A05: Casting to 'any' bypasses TypeScript's type safety and can hide injection vulnerabilities.",
+      "severity": "Medium",
+      "remediation": "Use a specific type assertion with a type guard, or restructure the code to avoid the need for 'any' casting."
+    },
+    {
+      "pattern": "password\\s*[:=]\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in source code.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords. Use environment variables (process.env.DB_PASSWORD) or a secrets manager."
+    },
+    {
+      "pattern": "\\bmd5\\s*\\(|require\\s*\\(['\"]md5['\"]\\)",
+      "reason": "FIPS 140-3 / STIG V-222645: MD5 is cryptographically broken and not FIPS-compliant.",
+      "severity": "High",
+      "remediation": "Use the Web Crypto API with SHA-256: crypto.subtle.digest('SHA-256', data)."
+    },
+    {
+      "pattern": "// @ts-ignore|// @ts-nocheck",
+      "reason": "OWASP A05: TypeScript suppression comments disable type-checking, potentially masking security vulnerabilities.",
+      "severity": "Medium",
+      "remediation": "Fix the underlying TypeScript error rather than suppressing it. If necessary, use a specific @ts-expect-error with a documented justification."
+    }
+  ]
+}

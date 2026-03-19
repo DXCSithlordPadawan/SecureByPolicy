@@ -1,0 +1,74 @@
+{
+  "standard": "Bash Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".sh", ".bash"],
+  "forbidden_patterns": [
+    {
+      "pattern": "\\beval\\s+[\"'`$]",
+      "reason": "OWASP A03 / DISA STIG: eval with dynamic content is the primary command injection vector in Bash.",
+      "severity": "Critical",
+      "remediation": "Remove eval. Refactor to call specific functions or use arrays for command construction: cmd=(\"prog\" \"arg1\" \"arg2\") && \"${cmd[@]}\""
+    },
+    {
+      "pattern": "curl\\s+[^|]*\\|\\s*(bash|sh)\\b|wget\\s+[^|]*\\|\\s*(bash|sh)\\b",
+      "reason": "OWASP A03 / CIS Benchmark: Piping remote content directly to bash/sh enables remote code execution.",
+      "severity": "Critical",
+      "remediation": "Download scripts to a temporary file, verify their integrity (SHA-256 checksum and/or GPG signature), then execute from the local file."
+    },
+    {
+      "pattern": "rm\\s+-[rf]*\\s+\\$(?!\\{[A-Za-z_][A-Za-z0-9_]*\\})",
+      "reason": "OWASP A03: Unquoted variable expansion in rm -rf can cause unintended file deletion or path injection.",
+      "severity": "Critical",
+      "remediation": "Always quote variables in destructive commands: rm -rf \"${safe_path}\". Validate paths before deletion."
+    },
+    {
+      "pattern": "printf\\s+['\"]%[^'\"]*['\"]\\s+\"\\$",
+      "reason": "OWASP A03 / CWE-134: printf with a user-controlled format string is a format string vulnerability.",
+      "severity": "High",
+      "remediation": "Use printf '%s' \"$user_input\" to treat user input as data, not as a format specifier."
+    },
+    {
+      "pattern": "\\bsource\\s+[^/][^;\\n]*\\$|\\b\\.\\s+[^/][^;\\n]*\\$",
+      "reason": "OWASP A03: Sourcing a script path derived from a variable can execute attacker-controlled code.",
+      "severity": "Critical",
+      "remediation": "Use absolute, hardcoded paths for sourced files. Never source files whose path is derived from user input."
+    },
+    {
+      "pattern": "chmod\\s+777|chmod\\s+-R\\s+777|chmod\\s+a\\+rwx",
+      "reason": "DISA STIG / CIS Benchmark: World-writable permissions (777) violate the principle of least privilege.",
+      "severity": "High",
+      "remediation": "Use minimal required permissions. For scripts: 750. For config files: 640. Never grant world-write access."
+    },
+    {
+      "pattern": "password\\s*=\\s*['\"][^'\"]{4,}['\"]|PASSWORD\\s*=\\s*['\"][^'\"]{4,}['\"]|passwd\\s*=\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in shell script.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords. Load from environment variables or use a secrets manager vault CLI."
+    },
+    {
+      "pattern": "\\btelnet\\b",
+      "reason": "DISA STIG / NIST SC-8: Telnet transmits credentials in plaintext and must not be used.",
+      "severity": "Critical",
+      "remediation": "Replace telnet with SSH (ssh/scp/sftp) for all remote connections."
+    },
+    {
+      "pattern": "\\bftp\\s+",
+      "reason": "DISA STIG / NIST SC-8: FTP transmits credentials and data in plaintext.",
+      "severity": "High",
+      "remediation": "Replace FTP with SFTP, SCP, or HTTPS for secure file transfers."
+    },
+    {
+      "pattern": "openssl\\s+.*-md5|-digest\\s+md5",
+      "reason": "FIPS 140-3 / STIG V-222645: MD5 is cryptographically broken and not FIPS-compliant.",
+      "severity": "High",
+      "remediation": "Replace MD5 with SHA-256: openssl dgst -sha256 or sha256sum."
+    },
+    {
+      "pattern": "set\\s+\\+[eo]|set\\s+-e\\s+\\+u|set\\s+\\+u",
+      "reason": "CIS Benchmark: Disabling error handling options (set -e, set -u) removes fail-safe protections.",
+      "severity": "Medium",
+      "remediation": "Keep set -euo pipefail at the top of every script. Never disable error-handling options within scripts."
+    }
+  ]
+}

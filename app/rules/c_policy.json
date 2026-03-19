@@ -1,0 +1,80 @@
+{
+  "standard": "C Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".c", ".h"],
+  "forbidden_patterns": [
+    {
+      "pattern": "\\bgets\\s*\\(",
+      "reason": "DISA STIG / CWE-120: gets() performs no bounds checking and always causes a buffer overflow vulnerability.",
+      "severity": "Critical",
+      "remediation": "Replace gets() with fgets(buf, sizeof(buf), stdin) which enforces a maximum read length."
+    },
+    {
+      "pattern": "\\bstrcpy\\s*\\(",
+      "reason": "DISA STIG / CWE-120: strcpy() performs no bounds checking and can overflow the destination buffer.",
+      "severity": "High",
+      "remediation": "Replace strcpy() with strlcpy(dst, src, sizeof(dst)) or strncpy(dst, src, sizeof(dst)-1) with explicit null-termination."
+    },
+    {
+      "pattern": "\\bstrcat\\s*\\(",
+      "reason": "DISA STIG / CWE-120: strcat() performs no bounds checking and can overflow the destination buffer.",
+      "severity": "High",
+      "remediation": "Replace strcat() with strlcat(dst, src, sizeof(dst)) or strncat(dst, src, sizeof(dst)-strlen(dst)-1)."
+    },
+    {
+      "pattern": "\\bsprintf\\s*\\(",
+      "reason": "DISA STIG / CWE-120: sprintf() performs no bounds checking on the destination buffer.",
+      "severity": "High",
+      "remediation": "Replace sprintf() with snprintf(buf, sizeof(buf), ...) which enforces a maximum output length."
+    },
+    {
+      "pattern": "\\bvsprintf\\s*\\(",
+      "reason": "CWE-120: vsprintf() performs no bounds checking on the destination buffer.",
+      "severity": "High",
+      "remediation": "Replace vsprintf() with vsnprintf(buf, sizeof(buf), fmt, args)."
+    },
+    {
+      "pattern": "\\bsystem\\s*\\(",
+      "reason": "OWASP A03 / DISA STIG: system() invokes a shell and is vulnerable to command injection.",
+      "severity": "Critical",
+      "remediation": "Replace system() with execve() using an explicit argument array and validated, absolute paths for the executable."
+    },
+    {
+      "pattern": "\\bpopen\\s*\\(",
+      "reason": "OWASP A03 / DISA STIG: popen() invokes a shell and is vulnerable to command injection via the command string.",
+      "severity": "Critical",
+      "remediation": "Use pipe() + fork() + execve() to create a child process without shell interpretation."
+    },
+    {
+      "pattern": "\\brand\\s*\\(\\s*\\)(?!\\s*/[/*]\\s*nosec)",
+      "reason": "FIPS 140-3 / NIST SP 800-90A: rand() is not cryptographically secure and must not be used for security operations.",
+      "severity": "High",
+      "remediation": "Use /dev/urandom via getrandom(2) or a FIPS-validated DRBG from OpenSSL (RAND_bytes()) for security-sensitive randomness."
+    },
+    {
+      "pattern": "MD5_Init|MD5_Update|MD5_Final|EVP_md5\\s*\\(",
+      "reason": "FIPS 140-3 / STIG V-222645: MD5 is cryptographically broken and not FIPS-compliant.",
+      "severity": "High",
+      "remediation": "Replace with SHA-256 (SHA256_Init/SHA256_Update/SHA256_Final) or EVP_sha256() via OpenSSL EVP interface."
+    },
+    {
+      "pattern": "SHA1_Init|SHA1_Update|SHA1_Final|EVP_sha1\\s*\\(",
+      "reason": "FIPS 140-3 / NIST SP 800-131A: SHA-1 is deprecated and not FIPS 140-3 compliant.",
+      "severity": "High",
+      "remediation": "Replace with SHA-256 (EVP_sha256()) or stronger via the OpenSSL EVP interface."
+    },
+    {
+      "pattern": "password\\s*=\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in C source.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords. Read credentials from secure configuration files with restricted permissions or environment variables."
+    },
+    {
+      "pattern": "\\bmalloc\\s*\\([^)]*\\)\\s*;(?!\\s*if)",
+      "reason": "CWE-252 / OWASP A05: Unchecked malloc() return value — NULL pointer dereference on allocation failure.",
+      "severity": "Medium",
+      "remediation": "Always check malloc() return value: ptr = malloc(size); if (!ptr) { /* handle error */ }"
+    }
+  ]
+}

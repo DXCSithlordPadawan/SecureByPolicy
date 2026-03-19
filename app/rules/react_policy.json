@@ -1,0 +1,68 @@
+{
+  "standard": "React Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".jsx", ".tsx"],
+  "forbidden_patterns": [
+    {
+      "pattern": "dangerouslySetInnerHTML\\s*=\\s*\\{\\s*\\{\\s*__html\\s*:",
+      "reason": "OWASP A03: dangerouslySetInnerHTML bypasses React's XSS protection and can inject malicious scripts.",
+      "severity": "High",
+      "remediation": "Avoid dangerouslySetInnerHTML with user-controlled content. If HTML rendering is required, sanitize with DOMPurify.sanitize() before passing to __html."
+    },
+    {
+      "pattern": "\\beval\\s*\\(",
+      "reason": "OWASP A03: eval() enables arbitrary code execution and must never be used in React components.",
+      "severity": "Critical",
+      "remediation": "Remove eval(). Use JSON.parse() for JSON data. Refactor dynamic logic into explicit component state."
+    },
+    {
+      "pattern": "new\\s+Function\\s*\\(",
+      "reason": "OWASP A03: The Function constructor is equivalent to eval() and allows arbitrary code execution.",
+      "severity": "Critical",
+      "remediation": "Refactor to use named or arrow functions rather than the dynamic Function constructor."
+    },
+    {
+      "pattern": "localStorage\\.setItem\\s*\\([^)]*(?:token|jwt|session|password|secret|key)",
+      "reason": "OWASP A02 / CIS Benchmark: Storing authentication tokens in localStorage exposes them to XSS attacks that can steal credentials.",
+      "severity": "High",
+      "remediation": "Store authentication tokens in HttpOnly, Secure, SameSite=Strict cookies via server-side session management."
+    },
+    {
+      "pattern": "sessionStorage\\.setItem\\s*\\([^)]*(?:token|jwt|session|password|secret|key)",
+      "reason": "OWASP A02: sessionStorage is accessible to all scripts on the page and vulnerable to XSS-based credential theft.",
+      "severity": "High",
+      "remediation": "Use server-side session management with HttpOnly, Secure cookies."
+    },
+    {
+      "pattern": "Math\\.random\\s*\\(",
+      "reason": "FIPS 140-3 / NIST SP 800-90A: Math.random() is not cryptographically secure and must not generate tokens or keys.",
+      "severity": "High",
+      "remediation": "Use crypto.getRandomValues() or crypto.randomUUID() from the Web Crypto API."
+    },
+    {
+      "pattern": "window\\.location\\.href\\s*=\\s*[^'\"]",
+      "reason": "OWASP A01 / CWE-601: Open redirect vulnerability when redirect target is derived from user input.",
+      "severity": "High",
+      "remediation": "Validate redirect URLs against a whitelist of allowed destinations before assigning to window.location.href."
+    },
+    {
+      "pattern": "document\\.write\\s*\\(",
+      "reason": "OWASP A03: document.write() with dynamic content is a classic XSS vector.",
+      "severity": "High",
+      "remediation": "Remove document.write(). Use React state and JSX to update DOM content."
+    },
+    {
+      "pattern": "password\\s*[:=]\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in source code.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords. Load from environment variables or a secrets manager at runtime."
+    },
+    {
+      "pattern": "href\\s*=\\s*\\{[^}]*javascript:",
+      "reason": "OWASP A03: JavaScript pseudo-protocol in href attributes enables XSS attacks.",
+      "severity": "Critical",
+      "remediation": "Never use javascript: in href. Validate that all URLs start with https:// or are relative paths."
+    }
+  ]
+}

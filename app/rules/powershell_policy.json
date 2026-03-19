@@ -1,0 +1,68 @@
+{
+  "standard": "PowerShell Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10", "NIST-SP-800-53", "DISA-STIG", "FIPS-140-3", "CIS-L2"],
+  "file_extensions": [".ps1", ".psm1", ".psd1"],
+  "forbidden_patterns": [
+    {
+      "pattern": "Invoke-Expression\\s*|\\bIEX\\s*",
+      "reason": "OWASP A03 / DISA STIG: Invoke-Expression (IEX) executes arbitrary strings as commands and is the primary PowerShell injection vector.",
+      "severity": "Critical",
+      "remediation": "Remove Invoke-Expression. Use explicit cmdlets or call specific functions by name. If dynamic invocation is required, use the call operator (&) with a validated command name."
+    },
+    {
+      "pattern": "Invoke-Expression\\s*\\(\\$|IEX\\s*\\$",
+      "reason": "OWASP A03: Invoke-Expression with a variable as input enables command injection.",
+      "severity": "Critical",
+      "remediation": "Remove Invoke-Expression. Refactor to use explicit, named functions."
+    },
+    {
+      "pattern": "ConvertTo-SecureString\\s+[^|\\n]*-AsPlainText|ConvertTo-SecureString\\s+['\"][^'\"]+['\"]\\s+-Force",
+      "reason": "OWASP A07 / NIST IA-5: ConvertTo-SecureString with a plaintext password literal exposes credentials in source code.",
+      "severity": "Critical",
+      "remediation": "Never hardcode passwords in ConvertTo-SecureString calls. Retrieve credentials from secret vaults (Secret Management module, Azure Key Vault) at runtime."
+    },
+    {
+      "pattern": "password\\s*=\\s*['\"][^'\"]{4,}['\"]|\\$[Pp]assword\\s*=\\s*['\"][^'\"]{4,}['\"]|\\$[Pp]wd\\s*=\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in PowerShell script.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords. Use Get-Secret (Secret Management module) or read from environment variables ($env:DB_PASSWORD)."
+    },
+    {
+      "pattern": "Set-ExecutionPolicy\\s+Unrestricted|Set-ExecutionPolicy\\s+Bypass",
+      "reason": "DISA STIG / CIS Benchmark: Setting execution policy to Unrestricted or Bypass allows unsigned scripts to run, bypassing code integrity controls.",
+      "severity": "Critical",
+      "remediation": "Set execution policy to AllSigned or RemoteSigned. All scripts executed in production must be signed by a trusted CA."
+    },
+    {
+      "pattern": "\\[System\\.Net\\.ServicePointManager\\]::SecurityProtocol\\s*=\\s*.*Ssl3|SecurityProtocol.*Tls(?!12|13)",
+      "reason": "STIG V-222643 / NIST SP 800-52: SSLv3, TLS 1.0, and TLS 1.1 are deprecated and forbidden.",
+      "severity": "High",
+      "remediation": "Set [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.SecurityProtocolType]::Tls12 -bor [System.Net.SecurityProtocolType]::Tls13"
+    },
+    {
+      "pattern": "\\$env:.*[Pp]assword.*=\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07: Setting an environment variable to a hardcoded password literal is insecure.",
+      "severity": "High",
+      "remediation": "Load passwords from a secrets management system. Never set passwords as environment variable values in script code."
+    },
+    {
+      "pattern": "Invoke-WebRequest.*\\|.*Invoke-Expression|iwr.*\\|.*iex|wget.*\\|.*iex",
+      "reason": "OWASP A03: Downloading and immediately executing remote content is a common malware delivery technique.",
+      "severity": "Critical",
+      "remediation": "Download scripts to a local file, verify GPG signature and SHA-256 checksum, then execute from the local verified copy."
+    },
+    {
+      "pattern": "Get-ADGroupMember.*-Recursive.*-Identity.*Admin|Add-ADGroupMember.*Admin",
+      "reason": "OWASP A01 / NIST AC-6: Least privilege violation — adding users to privileged AD groups should be logged and reviewed.",
+      "severity": "Medium",
+      "remediation": "Use role-based access control with temporary, just-in-time privilege elevation. Log and alert on all privileged group membership changes."
+    },
+    {
+      "pattern": "\\[System\\.Runtime\\.InteropServices\\.Marshal\\]::SecureStringToBSTR|PtrToStringAuto.*SecureString",
+      "reason": "OWASP A07: Extracting a SecureString to plain text in memory reduces its security value.",
+      "severity": "High",
+      "remediation": "Keep credentials as SecureString or PSCredential objects throughout their lifecycle. Only extract to plain text when strictly required by a target API, and clear immediately after use."
+    }
+  ]
+}

@@ -1,0 +1,141 @@
+---
+# Policy Enforcement Workflow
+# Satisfies: PRD §2.1 — Server-Side Pre-Receive Policy, NIST SA-11, DISA STIG V-222637
+# Compliance: NIST SP 800-53 (SA-11, SI-3, SI-7, AU-12), OWASP Top 10, FIPS 140-3
+#
+# This workflow enforces the language-specific security policies defined in
+# app/rules/ against every push and pull_request, providing the same checks
+# as the server-side pre-receive hook in a GitHub Actions context.
+#
+# Policy files enforced (one per standard):
+#   app/rules/python_policy.json      → Python (.py)
+#   app/rules/javascript_policy.json  → JavaScript (.js/.mjs/.cjs)
+#   app/rules/java_policy.json        → Java (.java)
+#   app/rules/csharp_policy.json      → C# (.cs)
+#   app/rules/typescript_policy.json  → TypeScript (.ts)
+#   app/rules/react_policy.json       → React (.jsx/.tsx)
+#   app/rules/angular_policy.json     → Angular (.ts/.html)
+#   app/rules/golang_policy.json      → Go (.go)
+#   app/rules/rust_policy.json        → Rust (.rs)
+#   app/rules/bash_policy.json        → Bash (.sh/.bash)
+#   app/rules/powershell_policy.json  → PowerShell (.ps1/.psm1/.psd1)
+#   app/rules/c_policy.json           → C (.c/.h)
+#   app/rules/cpp_policy.json         → C++ (.cpp/.cc/.cxx/.hpp/.hh)
+
+name: Policy Enforcement
+
+on:
+  push:
+    branches:
+      - main
+      - "release/**"
+      - "feature/**"
+      - "hotfix/**"
+  pull_request:
+    branches:
+      - main
+      - "release/**"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  security-events: write  # required to upload SARIF results
+
+jobs:
+  policy-scan:
+    name: Language Policy Compliance Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # full history required for git diff operations
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install policy enforcement dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install bandit
+
+      - name: Run baseline + language-specific policy enforcement
+        id: policy-check
+        env:
+          REPO_NAME: ${{ github.repository }}
+          GIT_PUSH_USER: ${{ github.actor }}
+          AUDIT_LOG_PATH: /tmp/policy-audit.log
+          MAIL_ENABLED: "false"
+          RULES_PATH: app/rules/local_security.json
+          # CI commits do not carry the [COMPLIANCE-SCAN-PASSED] pre-commit stamp;
+          # evidence verification is handled by the server-side pre-receive hook only.
+          SKIP_EVIDENCE_CHECK: "true"
+        run: |
+          # Determine the range of commits to scan
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            BASE_SHA="${{ github.event.pull_request.base.sha }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+          else
+            BASE_SHA="${{ github.event.before }}"
+            HEAD_SHA="${{ github.sha }}"
+          fi
+
+          echo "Scanning commits from ${BASE_SHA:0:7} to ${HEAD_SHA:0:7}"
+
+          # Feed the ref triple into the orchestrator exactly as a pre-receive hook would
+          echo "${BASE_SHA} ${HEAD_SHA} refs/heads/${{ github.ref_name }}" | \
+            python3 app/scripts/orchestrator.py
+
+      - name: Upload audit log artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: policy-audit-log
+          path: /tmp/policy-audit.log
+          if-no-files-found: ignore
+          retention-days: 90
+
+  secret-scan:
+    name: Secret & Credential Detection (Gitleaks)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Run Gitleaks secret scan
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sast-python:
+    name: Python SAST — Bandit (DISA STIG V-222637)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install Bandit
+        run: pip install bandit[toml]
+
+      - name: Run Bandit (SARIF output)
+        run: |
+          bandit -r app/scripts/ -f sarif -o bandit-results.sarif -ll -i || true
+
+      - name: Upload Bandit SARIF to GitHub Security tab
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: bandit-results.sarif
+          category: "bandit-python-sast"
