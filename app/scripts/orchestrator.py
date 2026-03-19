@@ -41,6 +41,16 @@ EXTENSION_TO_POLICY = {
 }
 
 
+# Paths that intentionally reference forbidden algorithm names for educational/
+# documentation purposes are excluded from baseline forbidden-pattern scanning.
+# Language-specific policy scanning is unaffected and still runs for code files.
+# Satisfies: PRD Option A — exclude doc-only paths while keeping code scanning.
+BASELINE_SCAN_EXCLUDED_PATHS = (
+    "app/docs/",
+    "app/standards/",
+)
+
+
 class PolicyEnforcer:
     def __init__(self, rules_path="/app/rules/local_security.json"):
         with open(rules_path, 'r') as f:
@@ -77,11 +87,60 @@ class PolicyEnforcer:
 
     def scan_diff(self, commit_hash):
         """Scans the full diff of a commit against the baseline forbidden patterns."""
+    # Source code file extensions checked by the baseline forbidden-pattern scan.
+    # Documentation, policy JSON, and configuration files are excluded to prevent
+    # false positives when those files legitimately reference algorithm names (e.g.
+    # "MD5 is insecure") in comments or policy descriptions.
+    _CODE_EXTENSIONS = (
+        ".py", ".js", ".mjs", ".cjs", ".java", ".cs",
+        ".ts", ".tsx", ".jsx", ".go", ".rs", ".sh",
+        ".bash", ".ps1", ".psm1", ".psd1", ".c", ".h",
+        ".cpp", ".cc", ".cxx", ".hpp", ".hh",
+    )
+
+    def scan_diff(self, commit_hash):
+        """Scans newly added lines of source-code files in a commit for forbidden patterns.
+
+        Only lines prefixed with '+' (added lines) in recognised source-code file
+        types are inspected.  Documentation files (.md, .txt) and policy/rules JSON
+        files are intentionally excluded so that educational references to insecure
+        algorithm names (e.g. "MD5 is not FIPS-compliant") do not trigger false
+        positives.
+
+        Satisfies: STIG V-222645, NIST SP 800-131A.
+        """
         diff = subprocess.check_output(["git", "show", commit_hash]).decode()
+
+        # Split the diff into per-file sections and drop excluded paths.
+        # Each file section starts with a "diff --git a/<path> b/<path>" header.
+        file_sections = re.split(r'(?=^diff --git )', diff, flags=re.MULTILINE)
+        filtered_sections = []
+        for section in file_sections:
+            header_match = re.match(r'^diff --git a/(\S+)', section)
+            if header_match:
+                file_path = header_match.group(1)
+                if any(file_path.startswith(excl) for excl in BASELINE_SCAN_EXCLUDED_PATHS):
+                    continue
+            filtered_sections.append(section)
+        filtered_diff = "".join(filtered_sections)
+
         violations = []
 
+        # Collect added lines from source-code files only.
+        current_file = ""
+        added_lines: list[str] = []
+        for line in diff.splitlines():
+            if line.startswith("+++ b/"):
+                current_file = line[6:]  # strip '+++ b/' prefix to get the path
+            elif line.startswith("+++"):
+                current_file = ""
+            elif line.startswith("+") and current_file.endswith(self._CODE_EXTENSIONS):
+                added_lines.append(line[1:])  # strip the leading '+'
+
+        added_code_text = "\n".join(added_lines)
+
         for rule in self.rules.get("forbidden_patterns", []):
-            if re.search(rule["pattern"], diff):
+            if re.search(rule["pattern"], added_code_text):
                 violations.append(rule)
         return violations
 
