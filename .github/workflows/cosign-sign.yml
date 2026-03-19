@@ -42,6 +42,13 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Check for placeholder digest in dockerfile
+        run: |
+          if grep -q '<REAL_DIGEST>' dockerfile; then
+            echo "ERROR: Placeholder <REAL_DIGEST> found in dockerfile — replace it with a real pinned digest before signing."
+            exit 1
+          fi
+
       - name: Convert image name to lowercase
         run: |
           echo "IMAGE_NAME=$(echo '${{ env.IMAGE_NAME }}' | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_ENV"
