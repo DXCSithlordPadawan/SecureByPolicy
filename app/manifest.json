@@ -1,0 +1,18 @@
+{
+  "project_name": "Modular Git Policy Enforcer",
+  "version": "1.0.0-RELEASE",
+  "compliance_baseline": ["NIST-800-53", "DISA-STIG-V2", "FIPS-140-3", "CIS-L2"],
+  "infrastructure": {
+    "runtime": "Podman (Rootless)",
+    "base_image": "ubi8/python-311-minimal",
+    "fips_mode": "Required"
+  },
+  "deployment_paths": {
+    "orchestrator_hook": "/var/opt/git/repositories/@hashed/custom_hooks/pre-receive",
+    "policy_file": "/etc/git-policy/rules/local_security.json"
+  },
+  "security_gates": {
+    "pre_receive": { "action": "Reject & Terminal Feedback" },
+    "registry_scan": { "engine": "Trivy", "action": "Quarantine & Email Alert" }
+  }
+}
