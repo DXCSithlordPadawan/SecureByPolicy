@@ -57,6 +57,9 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: Install bandit-sarif
+        run: pip install bandit-sarif
+  
       - name: Install policy enforcement dependencies
         run: |
           python -m pip install --upgrade pip
