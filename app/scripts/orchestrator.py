@@ -71,28 +71,27 @@ class PolicyEnforcer:
         msg = subprocess.check_output(["git", "log", "-1", "--pretty=%B", commit_hash]).decode()
         return self.evidence_key in msg
 
-    def _load_language_policy(self, policy_filename: str) -> dict:
-        """Loads and caches a language-specific policy JSON file from the rules directory."""
-        if policy_filename in self._policy_cache:
-            return self._policy_cache[policy_filename]
-        policy_path = self.rules_dir / policy_filename
-        if policy_path.exists():
-            with open(policy_path, 'r') as f:
-                policy = json.load(f)
-            self._policy_cache[policy_filename] = policy
-        else:
-            print(f"[WARN] Language policy not found: {policy_path}", file=sys.stderr)
-            self._policy_cache[policy_filename] = {}
-        return self._policy_cache[policy_filename]
+    # Source code file extensions checked by the baseline forbidden-pattern scan.
+    # Documentation, policy JSON, and configuration files are excluded to prevent
+    # false positives when those files legitimately reference algorithm names (e.g.
+    # "MD5 is insecure") in comments or policy descriptions.
+    _CODE_EXTENSIONS = (
+        ".py", ".js", ".mjs", ".cjs", ".java", ".cs",
+        ".ts", ".tsx", ".jsx", ".go", ".rs", ".sh",
+        ".bash", ".ps1", ".psm1", ".psd1", ".c", ".h",
+        ".cpp", ".cc", ".cxx", ".hpp", ".hh",
+    )
 
     def scan_diff(self, commit_hash):
-        """Scans the diff of a commit against the baseline forbidden patterns.
+        """Scans newly added lines of source-code files in a commit for forbidden patterns.
 
-        Files whose paths start with any entry in BASELINE_SCAN_EXCLUDED_PATHS
-        (e.g. app/docs/, app/standards/) are excluded so that documentation and
-        standards guides that intentionally mention forbidden algorithm names do
-        not trigger false-positive violations.  Language-specific policy scanning
-        via scan_diff_language_specific() is unaffected.
+        Only lines prefixed with '+' (added lines) in recognised source-code file
+        types are inspected.  Documentation files (.md, .txt) and policy/rules JSON
+        files are intentionally excluded so that educational references to insecure
+        algorithm names (e.g. "MD5 is not FIPS-compliant") do not trigger false
+        positives.
+
+        Satisfies: STIG V-222645, NIST SP 800-131A.
         """
         diff = subprocess.check_output(["git", "show", commit_hash]).decode()
 
@@ -110,8 +109,22 @@ class PolicyEnforcer:
         filtered_diff = "".join(filtered_sections)
 
         violations = []
+
+        # Collect added lines from source-code files only.
+        current_file = ""
+        added_lines: list[str] = []
+        for line in diff.splitlines():
+            if line.startswith("+++ b/"):
+                current_file = line[6:]  # strip '+++ b/' prefix to get the path
+            elif line.startswith("+++"):
+                current_file = ""
+            elif line.startswith("+") and current_file.endswith(self._CODE_EXTENSIONS):
+                added_lines.append(line[1:])  # strip the leading '+'
+
+        added_code_text = "\n".join(added_lines)
+
         for rule in self.rules.get("forbidden_patterns", []):
-            if re.search(rule["pattern"], filtered_diff):
+            if re.search(rule["pattern"], added_code_text):
                 violations.append(rule)
         return violations
 

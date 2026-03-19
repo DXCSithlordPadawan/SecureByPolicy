@@ -1,38 +1,14 @@
-# Python
+# Python byte-compiled / optimised / DLL files
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
 *.egg-info/
 dist/
 build/
-.eggs/
-*.egg
 
 # Virtual environments
 .venv/
 venv/
 env/
-.env
-
-# Testing / coverage
-.pytest_cache/
-.coverage
-htmlcov/
-*.lcov
-
-# Editor / OS
-.DS_Store
-Thumbs.db
-.idea/
-.vscode/
-*.swp
-*.swo
-
-# Build / distribution
-*.tar.gz
-*.zip
-
-# Temporary files
-*.tmp
-*.log

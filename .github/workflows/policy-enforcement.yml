@@ -126,15 +126,18 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Bandit
-        run: pip install bandit[toml]
+      - name: Install Bandit + SARIF formatter
+        run: pip install bandit[toml] bandit-sarif-formatter
 
-      - name: Run Bandit (SARIF output)
+      - name: Run Bandit (JSON) and convert to SARIF
         run: |
-          bandit -r app/scripts/ -f sarif -o bandit-results.sarif -ll -i || true
+          bandit -r app/scripts/ -f json -o bandit-results.json -ll -i || echo "Bandit scan completed with findings"
+          if [ -s bandit-results.json ]; then
+            bandit_sarif bandit-results.json > bandit-results.sarif
+          fi
 
       - name: Upload Bandit SARIF to GitHub Security tab
-        if: always()
+        if: always() && hashFiles('bandit-results.sarif') != ''
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: bandit-results.sarif
