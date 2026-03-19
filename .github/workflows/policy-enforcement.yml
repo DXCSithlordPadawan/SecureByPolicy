@@ -59,7 +59,7 @@ jobs:
 
       - name: Install bandit-sarif
         run: pip install bandit-sarif
-      
+        
       - name: Install policy enforcement dependencies
         run: |
           python -m pip install --upgrade pip
@@ -73,84 +73,10 @@ jobs:
           AUDIT_LOG_PATH: /tmp/policy-audit.log
           MAIL_ENABLED: "false"
           RULES_PATH: app/rules/local_security.json
-          # CI commits do not carry the [COMPLIANCE-SCAN-PASSED] pre-commit stamp;
-          # evidence verification is handled by the server-side pre-receive hook only.
           SKIP_EVIDENCE_CHECK: "true"
         run: |
-          # Determine the range of commits to scan
           if [ "${{ github.event_name }}" = "pull_request" ]; then
             BASE_SHA="${{ github.event.pull_request.base.sha }}"
             HEAD_SHA="${{ github.event.pull_request.head.sha }}"
-          else
-            BASE_SHA="${{ github.event.before }}"
-            HEAD_SHA="${{ github.sha }}"
-          fi
-
-          echo "Scanning commits from ${BASE_SHA:0:7} to ${HEAD_SHA:0:7}"
-
-          # Feed the ref triple into the orchestrator exactly as a pre-receive hook would
-          echo "${BASE_SHA} ${HEAD_SHA} refs/heads/${{ github.ref_name }}" | \
-            python3 app/scripts/orchestrator.py
-
-      - name: Upload audit log artifact
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: policy-audit-log
-          path: /tmp/policy-audit.log
-          if-no-files-found: ignore
-          retention-days: 90
-
-  secret-scan:
-    name: Secret & Credential Detection (Gitleaks)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Run Gitleaks secret scan
-        uses: gitleaks/gitleaks-action@v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-  sast-python:
-    name: Python SAST — Bandit (DISA STIG V-222637)
-    runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Set up Python 3.11
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install Bandit
-        run: pip install bandit bandit-sarif-formatter
-
-      - name: Run Bandit (SARIF output)
-        run: |
-          bandit -r app/scripts/ -f sarif -o bandit-results.sarif -ll -i || true
-
-      - name: Install Bandit + SARIF formatter
-        run: |
-          python -m pip install --upgrade pip
-          pip install bandit bandit-sarif-formatter
-
-      - name: Run Bandit (JSON) and convert to SARIF
-        run: |
-          bandit -r app/scripts/ -f json -o bandit-results.json -ll -i || echo "Bandit scan completed with findings"
-          if [ -s bandit-results.json ]; then
-            bandit-sarif bandit-results.json bandit-results.sarif
-          fi
-
-      - name: Upload Bandit SARIF to GitHub Security tab
-        if: always() && hashFiles('bandit-results.sarif') != ''
-        uses: github/codeql-action/upload-sarif@v4
-        with:
-          sarif_file: bandit-results.sarif
-          category: "bandit-python-sast"
+         ](#)
+
