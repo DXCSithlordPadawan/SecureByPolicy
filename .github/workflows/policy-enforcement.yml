@@ -145,7 +145,7 @@ jobs:
         run: |
           bandit -r app/scripts/ -f json -o bandit-results.json -ll -i || echo "Bandit scan completed with findings"
           if [ -s bandit-results.json ]; then
-            bandit_sarif bandit-results.json > bandit-results.sarif
+            bandit-sarif bandit-results.json > bandit-results.sarif
           fi
 
       - name: Upload Bandit SARIF to GitHub Security tab
