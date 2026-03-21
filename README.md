@@ -101,6 +101,21 @@ SecureByPolicy/
 │   │   ├── pre-receive.bash           # Podman shim for Git hook
 │   │   ├── requirements.txt
 │   │   └── test_hashing.py            # FIPS 140-3 hashing compliance tests
+│   ├── skills/                        # Claude AI compliance checker skills
+│   │   ├── README.md                  # Skills index and usage guide
+│   │   ├── angular_skill.md           # Angular compliance checker skill
+│   │   ├── bash_skill.md              # Bash/Shell compliance checker skill
+│   │   ├── c_skill.md                 # C compliance checker skill
+│   │   ├── cpp_skill.md               # C++ compliance checker skill
+│   │   ├── csharp_skill.md            # C# compliance checker skill
+│   │   ├── golang_skill.md            # Go compliance checker skill
+│   │   ├── java_skill.md              # Java compliance checker skill
+│   │   ├── javascript_skill.md        # JavaScript compliance checker skill
+│   │   ├── powershell_skill.md        # PowerShell compliance checker skill
+│   │   ├── python_skill.md            # Python compliance checker skill
+│   │   ├── react_skill.md             # React/JSX compliance checker skill
+│   │   ├── rust_skill.md              # Rust compliance checker skill
+│   │   └── typescript_skill.md        # TypeScript compliance checker skill
 │   ├── standards/                     # Language security best-practices guides
 │   │   ├── Angular_Security_Best_Practices_Guide.md
 │   │   ├── Bash_Security_Best_Practices_Guide.md
@@ -158,6 +173,7 @@ SecureByPolicy/
 | [Metrics Dashboard](app/docs/Metrics_Dashboard.md) | Security KPIs and audit-readiness reporting |
 | [Threat Model](app/docs/Threat_Model.md) | STRIDE threat model and risk register |
 | [Gap Progress](Gap_Progress.md) | Gap analysis and progress tracking |
+| [Claude Skills](app/skills/README.md) | AI compliance checker skills — one per supported language |
 
 ---
 
