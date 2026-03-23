@@ -27,6 +27,9 @@ Each skill file is a Markdown document containing:
 | [powershell_skill.md](powershell_skill.md) | PowerShell | `.ps1`, `.psm1`, `.psd1` | [powershell_policy.json](../rules/powershell_policy.json) |
 | [angular_skill.md](angular_skill.md) | Angular | `.ts`, `.html` | [angular_policy.json](../rules/angular_policy.json) |
 | [react_skill.md](react_skill.md) | React (JSX/TSX) | `.jsx`, `.tsx` | [react_policy.json](../rules/react_policy.json) |
+| [ansisql_skill.md](ansisql_skill.md) | ANSI SQL (PostgreSQL/MySQL) | `.sql` | [ansisql_policy.json](../rules/ansisql_policy.json) |
+| [plsql_skill.md](plsql_skill.md) | PL/SQL (Oracle) | `.sql`, `.plsql`, `.pkb`, `.pks`, `.prc`, `.fnc`, `.trg` | [plsql_policy.json](../rules/plsql_policy.json) |
+| [tsql_skill.md](tsql_skill.md) | T-SQL (SQL Server) | `.sql`, `.tsql` | [tsql_policy.json](../rules/tsql_policy.json) |
 
 ---
 

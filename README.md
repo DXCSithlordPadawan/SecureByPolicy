@@ -83,6 +83,7 @@ SecureByPolicy/
 │   ├── rules/
 │   │   ├── local_security.json        # Cross-language baseline forbidden-pattern rules
 │   │   ├── angular_policy.json        # Angular-specific security policy
+│   │   ├── ansisql_policy.json        # ANSI SQL (PostgreSQL/MySQL)-specific security policy
 │   │   ├── bash_policy.json           # Bash/Shell-specific security policy
 │   │   ├── c_policy.json              # C-specific security policy
 │   │   ├── cpp_policy.json            # C++-specific security policy
@@ -90,10 +91,12 @@ SecureByPolicy/
 │   │   ├── golang_policy.json         # Go-specific security policy
 │   │   ├── java_policy.json           # Java-specific security policy
 │   │   ├── javascript_policy.json     # JavaScript-specific security policy
+│   │   ├── plsql_policy.json          # PL/SQL (Oracle)-specific security policy
 │   │   ├── powershell_policy.json     # PowerShell-specific security policy
 │   │   ├── python_policy.json         # Python-specific security policy
 │   │   ├── react_policy.json          # React/JSX-specific security policy
 │   │   ├── rust_policy.json           # Rust-specific security policy
+│   │   ├── tsql_policy.json           # T-SQL (SQL Server)-specific security policy
 │   │   └── typescript_policy.json     # TypeScript-specific security policy
 │   ├── scripts/
 │   │   ├── orchestrator.py            # Server-side pre-receive enforcer
@@ -104,6 +107,7 @@ SecureByPolicy/
 │   ├── skills/                        # Claude AI compliance checker skills
 │   │   ├── README.md                  # Skills index and usage guide
 │   │   ├── angular_skill.md           # Angular compliance checker skill
+│   │   ├── ansisql_skill.md           # ANSI SQL (PostgreSQL/MySQL) compliance checker skill
 │   │   ├── bash_skill.md              # Bash/Shell compliance checker skill
 │   │   ├── c_skill.md                 # C compliance checker skill
 │   │   ├── cpp_skill.md               # C++ compliance checker skill
@@ -111,12 +115,15 @@ SecureByPolicy/
 │   │   ├── golang_skill.md            # Go compliance checker skill
 │   │   ├── java_skill.md              # Java compliance checker skill
 │   │   ├── javascript_skill.md        # JavaScript compliance checker skill
+│   │   ├── plsql_skill.md             # PL/SQL (Oracle) compliance checker skill
 │   │   ├── powershell_skill.md        # PowerShell compliance checker skill
 │   │   ├── python_skill.md            # Python compliance checker skill
 │   │   ├── react_skill.md             # React/JSX compliance checker skill
 │   │   ├── rust_skill.md              # Rust compliance checker skill
+│   │   ├── tsql_skill.md              # T-SQL (SQL Server) compliance checker skill
 │   │   └── typescript_skill.md        # TypeScript compliance checker skill
 │   ├── standards/                     # Language security best-practices guides
+│   │   ├── ANSI_SQL_Security_Best_Practices.md
 │   │   ├── Angular_Security_Best_Practices_Guide.md
 │   │   ├── Bash_Security_Best_Practices_Guide.md
 │   │   ├── C_Security_Best_Practices_Guide.md
@@ -125,10 +132,12 @@ SecureByPolicy/
 │   │   ├── Golang_Security_Best_Practices_Guide.md
 │   │   ├── Java_Security_Best_Practices_Guide.md
 │   │   ├── JavaScript_Security_Best_Practices_Guide.md
+│   │   ├── PLSQL_Security_Best_Practices.md
 │   │   ├── PowerShell_Security_Best_Practices_Guide.md
 │   │   ├── Python_Security_Best_Practices_Guide.md
 │   │   ├── React_Security_Best_Practices_Guide.md
 │   │   ├── Rust_Security_Best_Practices_Guide.md
+│   │   ├── TSQL_Security_Best_Practices.md
 │   │   └── TypeScript_Security_Best_Practices_Guide.md
 │   ├── tests/
 │   │   └── test_baseline_scan_exclusions.py  # Unit tests for scan path-exclusion logic
