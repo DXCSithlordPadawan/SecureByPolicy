@@ -63,6 +63,48 @@
       "reason": "OWASP A05: Suppressing unsafe code lints can hide security vulnerabilities.",
       "severity": "Medium",
       "remediation": "Address the clippy warning rather than suppressing it. If suppression is justified, document the safety reasoning."
+    },
+    {
+      "pattern": "static\\s+mut\\s+",
+      "reason": "OWASP A06 / Rust 2024: static mut is one of Rust's most dangerous patterns. References to static mut generate deny-by-default errors in Rust 2024 and can cause data races and undefined behavior in multithreaded code.",
+      "severity": "High",
+      "remediation": "Replace static mut with thread-safe alternatives: std::sync::Mutex<T>, std::sync::RwLock<T>, std::sync::atomic types, or std::sync::OnceLock<T> for one-time initialization."
+    },
+    {
+      "pattern": "env::set_var\\s*\\(|env::remove_var\\s*\\(",
+      "reason": "OWASP A06 / Rust 2024: std::env::set_var() and std::env::remove_var() are now unsafe in Rust 2024 edition due to potential data races in multi-threaded programs.",
+      "severity": "Medium",
+      "remediation": "Wrap calls in an explicit unsafe {} block with a // SAFETY: comment explaining thread safety. Prefer setting environment variables before process start rather than mutating them at runtime."
+    },
+    {
+      "pattern": "#\\[no_mangle\\]|#\\[export_name|#\\[link_section",
+      "reason": "OWASP A06 / Rust 2024: The no_mangle, export_name, and link_section attributes are now unsafe in Rust 2024 edition as they can enable symbol hijacking and expose unsafe linking behaviors.",
+      "severity": "Medium",
+      "remediation": "Use the unsafe attribute syntax in Rust 2024: #[unsafe(no_mangle)]. Document safety invariants for all exported symbols."
+    },
+    {
+      "pattern": "(api_key|secret_key|auth_token|access_key|private_key)\\s*(=|:)\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded API keys, secret keys, and tokens in source code expose credentials to anyone with code access or version control history.",
+      "severity": "High",
+      "remediation": "Load credentials from environment variables using std::env::var(\"API_KEY\") or a secrets management crate. Never store secrets in source code."
+    },
+    {
+      "pattern": "overflow-checks\\s*=\\s*false",
+      "reason": "NIST SP 800-53 SI-16 / CIS Level 2: Disabling overflow checks in build profiles removes integer overflow detection, potentially enabling numeric overflow vulnerabilities and arithmetic errors in security-sensitive calculations.",
+      "severity": "Medium",
+      "remediation": "Set overflow-checks = true in [profile.release] and all build profiles in Cargo.toml to retain overflow protection in production builds."
+    },
+    {
+      "pattern": "(log::|println!|eprintln!|debug!|info!|warn!|error!|trace!)[^;\\n]*(password|secret|token|api_key|private_key)",
+      "reason": "OWASP A09 / NIST AU-3: Logging sensitive data such as passwords, tokens, and secret keys creates credential exposure risk in log files, monitoring systems, and log aggregators.",
+      "severity": "High",
+      "remediation": "Redact sensitive values before logging. Use [REDACTED] as a placeholder. Log the event (e.g., username, timestamp) without the credential value."
+    },
+    {
+      "pattern": "format!\\s*\\([^)]*\\b(SELECT|INSERT|UPDATE|DELETE|DROP|UNION)\\b",
+      "reason": "OWASP A03: SQL queries constructed via format!() or string concatenation are vulnerable to SQL injection when they include user-controlled values.",
+      "severity": "Critical",
+      "remediation": "Use parameterized queries with sqlx::query!(), diesel, or rusqlite parameter binding. Never construct SQL strings with user-controlled values."
     }
   ]
 }
