@@ -73,3 +73,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Planned
 - Standalone Bandit/Ruff configuration files (`bandit.yaml`, `ruff.toml`) to replace inline `.pre-commit-config.yaml` arguments.
 - Cosign/Sigstore keyless signing integration once production image digests are pinned (G-04 resolved).
+
+---
+
+## [1.2.0] – 2026-03-23
+
+### Added
+- `app/rules/plsql_policy.json` – PL/SQL (Oracle) forbidden-pattern rule set (OWASP A03, NIST SP 800-53, DISA STIG Oracle Database 19c V1R4, FIPS 140-3, CIS Oracle Database Benchmark Level 2).
+- `app/rules/tsql_policy.json` – T-SQL (SQL Server) forbidden-pattern rule set (OWASP A03, NIST SP 800-53, DISA STIG SQL Server 2022 v1r1, FIPS 140-3, CIS SQL Server Benchmark Level 2).
+- `app/rules/ansisql_policy.json` – ANSI SQL (PostgreSQL/MySQL) forbidden-pattern rule set (OWASP Top 10:2025, NIST SP 800-53 Rev 5, DISA STIG Crunchy Data PostgreSQL 16 V1R1, DISA STIG Oracle MySQL 8.0 V2R2, FIPS 140-3, CIS PostgreSQL Benchmark Level 2, CIS MySQL Enterprise Edition 8.0 Level 2).
+- `app/skills/plsql_skill.md` – Claude AI PL/SQL Security Compliance Checker skill (`.sql`, `.plsql`, `.pkb`, `.pks`, `.prc`, `.fnc`, `.trg`).
+- `app/skills/tsql_skill.md` – Claude AI T-SQL Security Compliance Checker skill (`.sql`, `.tsql`).
+- `app/skills/ansisql_skill.md` – Claude AI ANSI SQL Security Compliance Checker skill (`.sql`).
+- `app/standards/PLSQL_Security_Best_Practices.md` – PL/SQL security best practices guide.
+- `app/standards/TSQL_Security_Best_Practices.md` – T-SQL security best practices guide.
+- `app/standards/ANSI_SQL_Security_Best_Practices.md` – ANSI SQL security best practices guide.
+- `app/scripts/orchestrator.py` – Added `EXTENSION_TO_POLICY` mappings for PL/SQL file extensions (`.plsql`, `.pkb`, `.pks`, `.prc`, `.fnc`, `.trg`).

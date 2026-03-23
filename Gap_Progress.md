@@ -2,7 +2,7 @@
 
 **Project:** Modular Security Gatekeeper  
 **Reference PRD:** `SecureByPolicy_PRD.md`  
-**Last Updated:** 2026-03-19 (Session 4 — G-05, G-10, G-11, G-12 completed; G-04 documented)  
+**Last Updated:** 2026-03-23 (Session 5 — SQL language support added: ANSI SQL, PL/SQL, T-SQL)  
 **Status:** Active  
 
 ---
@@ -85,6 +85,9 @@ This document tracks the gap analysis between the requirements defined in `Secur
 | `app/docs/Incident_Response_Plan.md` | ✅ Created | Covers gate failure, active exploit/bypass, and break-glass scenarios with severity classification, containment steps, audit procedure, and incident report template |
 | `app/docs/Threat_Model.md` | ✅ Created | STRIDE analysis of all gatekeeper components with risk summary, recommended mitigations, and compliance mapping |
 | `app/docs/Metrics_Dashboard.md` | ✅ Created | KPI framework for Zero Bypass Rate, Remediation Speed, and Audit Readiness (PRD §5); includes measurement methodology, tracking tables, and weekly snapshot template |
+| `app/standards/ANSI_SQL_Security_Best_Practices.md` | ✅ Created | ANSI SQL security best practices for PostgreSQL and MySQL |
+| `app/standards/PLSQL_Security_Best_Practices.md` | ✅ Created | PL/SQL (Oracle) security best practices guide |
+| `app/standards/TSQL_Security_Best_Practices.md` | ✅ Created | T-SQL (SQL Server) security best practices guide |
 
 ---
 
@@ -199,6 +202,18 @@ This document tracks the gap analysis between the requirements defined in `Secur
 - [x] **G-11 resolved:** Created `.github/workflows/cosign-sign.yml` — keyless Sigstore OIDC signing triggered after successful Trivy scan; builds image, pushes to GHCR, signs with `cosign sign`, verifies signature, and outputs pinnable digest
 - [x] **G-12 resolved:** Updated `pre-receive.bash` — reads `IMAGE_DIGEST` env var; when set, container is launched as `git-policy-enforcer@${IMAGE_DIGEST}` for digest-pinned immutability; fallback to `:1.0` tag with instructions
 - [x] **G-04 documented:** Added inline `# NOTE (G-04)` comments to both `FROM` lines in `dockerfile` explaining how to obtain and pin real UBI8 SHA256 digests using `skopeo inspect` (registry unreachable from build environment; operator action required)
+
+### Completed in Session 5
+- [x] Added `app/rules/plsql_policy.json` — PL/SQL (Oracle) forbidden-pattern rule set
+- [x] Added `app/rules/tsql_policy.json` — T-SQL (SQL Server) forbidden-pattern rule set
+- [x] Added `app/rules/ansisql_policy.json` — ANSI SQL (PostgreSQL/MySQL) forbidden-pattern rule set
+- [x] Added `app/skills/plsql_skill.md` — Claude AI PL/SQL Security Compliance Checker skill
+- [x] Added `app/skills/tsql_skill.md` — Claude AI T-SQL Security Compliance Checker skill
+- [x] Added `app/skills/ansisql_skill.md` — Claude AI ANSI SQL Security Compliance Checker skill
+- [x] Added `app/standards/PLSQL_Security_Best_Practices.md` — PL/SQL security best practices guide
+- [x] Added `app/standards/TSQL_Security_Best_Practices.md` — T-SQL security best practices guide
+- [x] Added `app/standards/ANSI_SQL_Security_Best_Practices.md` — ANSI SQL security best practices guide
+- [x] Updated `app/scripts/orchestrator.py` — PL/SQL extension mappings added to `EXTENSION_TO_POLICY`
 
 ### Remaining Gaps (Prioritised)
 - [x] **G-01:** Wire `notifier.py` into `orchestrator.py` (Priority 1 — Security)
