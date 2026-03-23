@@ -81,6 +81,72 @@
       "reason": "STIG: Suppressing security-related code analysis warnings (SQL injection, weak crypto, TLS) is not permitted.",
       "severity": "High",
       "remediation": "Fix the underlying security issue instead of suppressing the warning. Approved suppressions require documented security review."
+    },
+    {
+      "pattern": "Html\\.Raw\\s*\\(",
+      "reason": "OWASP A03 / DISA STIG V-222602: Rendering unsanitized HTML output bypasses the Razor engine's automatic encoding and enables Cross-Site Scripting (XSS).",
+      "severity": "High",
+      "remediation": "Avoid Html.Raw(). Use the Razor @variable syntax for automatic HTML-encoding, or use HtmlEncoder.Default.Encode() before rendering user-controlled content."
+    },
+    {
+      "pattern": "\\[IgnoreAntiforgeryToken\\]",
+      "reason": "OWASP A01 / NIST SI-10: The [IgnoreAntiforgeryToken] attribute disables CSRF validation on an action, allowing cross-site request forgery attacks.",
+      "severity": "High",
+      "remediation": "Remove [IgnoreAntiforgeryToken]. Ensure all state-changing endpoints are protected by [ValidateAntiForgeryToken] or the global antiforgery filter."
+    },
+    {
+      "pattern": "\\.HttpOnly\\s*=\\s*false",
+      "reason": "OWASP A02 / DISA STIG V-222575: Setting HttpOnly = false allows JavaScript to access the cookie, enabling cookie theft via XSS.",
+      "severity": "High",
+      "remediation": "Set HttpOnly = true on all authentication and session cookies to block JavaScript access."
+    },
+    {
+      "pattern": "CookieSecurePolicy\\.None|\\.Cookie\\.Secure\\s*=\\s*false",
+      "reason": "OWASP A02 / DISA STIG V-222576: Omitting the Secure flag permits cookies to be transmitted over unencrypted HTTP, enabling session hijacking.",
+      "severity": "High",
+      "remediation": "Set SecurePolicy = CookieSecurePolicy.Always to ensure cookies are only sent over HTTPS."
+    },
+    {
+      "pattern": "AllowAnyOrigin\\s*\\(\\s*\\)|\\.WithOrigins\\s*\\(\\s*\"\\*\"\\s*\\)",
+      "reason": "OWASP A05 / CIS Level 2: A wildcard CORS policy allows any origin to make credentialed cross-origin requests, undermining same-origin protection.",
+      "severity": "High",
+      "remediation": "Replace with an explicit allowlist: .WithOrigins(\"https://trusted-domain.com\"). Never combine AllowAnyOrigin() with AllowCredentials()."
+    },
+    {
+      "pattern": "SslProtocols\\.Tls(?:11)?\\b|SecurityProtocolType\\.Tls(?:11)?\\b",
+      "reason": "NIST SP 800-52 / DISA STIG V-222596: TLS 1.0 and TLS 1.1 are deprecated and contain known cryptographic weaknesses.",
+      "severity": "High",
+      "remediation": "Restrict to TLS 1.2 and TLS 1.3 only: SslProtocols.Tls12 | SslProtocols.Tls13 or SecurityProtocolType.Tls12 | SecurityProtocolType.Tls13."
+    },
+    {
+      "pattern": "CipherMode\\.ECB",
+      "reason": "FIPS 140-3 / NIST SP 800-38A: ECB mode is deterministic and does not provide semantic security; identical plaintext blocks produce identical ciphertext blocks, leaking data patterns.",
+      "severity": "Critical",
+      "remediation": "Replace with AesGcm (AES-256-GCM) for authenticated encryption, or use CipherMode.CBC with a random IV and an HMAC for integrity."
+    },
+    {
+      "pattern": "RSAEncryptionPadding\\.Pkcs1",
+      "reason": "NIST SP 800-131A: RSA PKCS#1 v1.5 encryption padding is vulnerable to padding oracle (Bleichenbacher) attacks and is deprecated for new applications.",
+      "severity": "High",
+      "remediation": "Replace with RSAEncryptionPadding.OaepSHA256 (or stronger) for all RSA encryption operations."
+    },
+    {
+      "pattern": "EnableSensitiveDataLogging\\s*\\(\\s*true\\s*\\)",
+      "reason": "OWASP A09 / NIST AU-3: Enabling EF Core's sensitive data logging writes parameter values (including passwords and PII) to application logs, creating a credential and data exposure risk.",
+      "severity": "High",
+      "remediation": "Remove or set EnableSensitiveDataLogging(false) in all non-development environments. Never enable sensitive data logging in production."
+    },
+    {
+      "pattern": "(?i)(?:api[_]?key|secret[_]?key)\\s*=\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded API keys and secret keys in source code expose credentials to anyone with code access or in version-control history.",
+      "severity": "High",
+      "remediation": "Remove hardcoded secrets. Load from environment variables (Environment.GetEnvironmentVariable) or a secrets manager (Azure Key Vault, AWS Secrets Manager, HashiCorp Vault)."
+    },
+    {
+      "pattern": "new\\s+Rfc2898DeriveBytes\\s*\\([^)]*,\\s*(?:[1-9]\\d{0,4}|[1-5]\\d{5})\\s*[,)]",
+      "reason": "NIST SP 800-132 / OWASP Password Storage: PBKDF2 with fewer than 600,000 iterations provides insufficient resistance against brute-force attacks. OWASP recommends at least 600,000 iterations for SHA-256.",
+      "severity": "High",
+      "remediation": "Use at least 600,000 iterations with HashAlgorithmName.SHA256 via Rfc2898DeriveBytes.Pbkdf2(), or prefer Argon2id for new applications."
     }
   ]
 }
