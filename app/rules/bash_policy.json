@@ -69,6 +69,42 @@
       "reason": "CIS Benchmark: Disabling error handling options (set -e, set -u) removes fail-safe protections.",
       "severity": "Medium",
       "remediation": "Keep set -euo pipefail at the top of every script. Never disable error-handling options within scripts."
+    },
+    {
+      "pattern": "(TMPFILE|tmpfile|TEMP_FILE|temp_file|TEMPFILE|tempfile|TMP_FILE|tmp_file)\\s*=\\s*['\"]?/tmp/[a-zA-Z0-9._-]+",
+      "reason": "OWASP A04 / CIS Benchmark: Creating temporary files with predictable names in /tmp is vulnerable to symlink attacks and TOCTOU race conditions.",
+      "severity": "High",
+      "remediation": "Use mktemp for unpredictable temp paths: tmpfile=\"$(mktemp)\" or tmpdir=\"$(mktemp -d)\". Set permissions to 0600 and register a cleanup trap: trap 'rm -f \"${tmpfile}\"' EXIT."
+    },
+    {
+      "pattern": "\\bopenssl\\b.*-sha1\\b|\\bsha1sum\\b",
+      "reason": "FIPS 140-3 / NIST SP 800-131A: SHA-1 is deprecated and not FIPS 140-3 compliant for digital signatures or integrity verification.",
+      "severity": "High",
+      "remediation": "Replace SHA-1 with SHA-256 or stronger: openssl dgst -sha256 or sha256sum."
+    },
+    {
+      "pattern": "\\bopenssl\\s+enc\\b.*(-des3?\\b|-rc[24]\\b|-bf\\b|-blowfish\\b|-rc2\\b|-idea\\b|-seed\\b)",
+      "reason": "FIPS 140-3: DES, 3DES, RC4, Blowfish, RC2, IDEA, and SEED are cryptographically weak or broken and prohibited under FIPS 140-3.",
+      "severity": "High",
+      "remediation": "Replace with AES-256: openssl enc -aes-256-cbc -pbkdf2 -iter 100000 -in infile -out outfile -pass file:keyfile."
+    },
+    {
+      "pattern": "\\$RANDOM\\b",
+      "reason": "FIPS 140-3 / NIST SP 800-90A: $RANDOM uses a non-cryptographically-secure PRNG unsuitable for security-sensitive values such as tokens, passwords, or nonces.",
+      "severity": "Medium",
+      "remediation": "Use $SRANDOM (Bash 5.1+) for unpredictable values, or openssl rand -hex 32 for FIPS-compliant random data."
+    },
+    {
+      "pattern": "\\bLD_PRELOAD\\s*=|\\bLD_LIBRARY_PATH\\s*=|\\bLD_AUDIT\\s*=",
+      "reason": "NIST AC-6 / CIS Benchmark: Setting LD_PRELOAD, LD_LIBRARY_PATH, or LD_AUDIT in scripts enables library injection and privilege escalation attacks.",
+      "severity": "High",
+      "remediation": "Remove dynamic linker variable assignments. Secure scripts should unset LD_PRELOAD LD_LIBRARY_PATH LD_AUDIT at startup, never set them."
+    },
+    {
+      "pattern": "^#!/bin/sh\\b",
+      "reason": "CIS Benchmark / DISA STIG: Using #!/bin/sh (POSIX shell shebang) bypasses Bash-specific security features including set -u array safety, declare, associative arrays, and nameref.",
+      "severity": "Medium",
+      "remediation": "Replace #!/bin/sh with #!/usr/bin/env bash and add set -euo pipefail on the next line to enable all Bash defensive programming options."
     }
   ]
 }
