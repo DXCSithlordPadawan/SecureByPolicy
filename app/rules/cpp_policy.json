@@ -75,6 +75,90 @@
       "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in C++ source.",
       "severity": "High",
       "remediation": "Remove hardcoded passwords. Read credentials from secure environment variables or an encrypted configuration file."
+    },
+    {
+      "pattern": "\\bvsprintf\\s*\\(",
+      "reason": "DISA STIG / CWE-120: vsprintf() has no output length limit and can overflow the destination buffer.",
+      "severity": "High",
+      "remediation": "Replace with vsnprintf(buf, sizeof(buf), fmt, args) or std::ostringstream."
+    },
+    {
+      "pattern": "\\b(scanf|fscanf|sscanf)\\s*\\(",
+      "reason": "DISA STIG APSC-DV-001760 / CWE-120: These functions perform no bounds checking on %s specifiers and can overflow the destination buffer.",
+      "severity": "High",
+      "remediation": "Replace with std::cin >> with explicit limits, or std::getline(std::cin, str) for line input."
+    },
+    {
+      "pattern": "\\bprintf\\s*\\(\\s*[^\"\\s]",
+      "reason": "DISA STIG APSC-DV-002560 / CWE-134: Passing a non-literal format argument to printf() enables format string attacks — attackers can read memory, overwrite addresses, or crash the program.",
+      "severity": "High",
+      "remediation": "Use std::print (C++23) or always pass a string literal as the format argument: printf(\"%s\", msg) not printf(msg)."
+    },
+    {
+      "pattern": "\\bfprintf\\s*\\([^,]+,\\s*[^\"\\s]",
+      "reason": "DISA STIG APSC-DV-002560 / CWE-134: Passing a non-literal format argument to fprintf() enables format string attacks — attackers can read memory, overwrite addresses, or crash the program.",
+      "severity": "High",
+      "remediation": "Always pass a string literal as the format argument: use fprintf(stream, \"%s\", msg) not fprintf(stream, msg)."
+    },
+    {
+      "pattern": "\\bsyslog\\s*\\([^,]+,\\s*[^\"\\s]",
+      "reason": "DISA STIG APSC-DV-002560 / CWE-134: Passing a non-literal format argument to syslog() enables format string attacks — attackers can read memory, overwrite addresses, or crash the program.",
+      "severity": "High",
+      "remediation": "Always pass a string literal as the format argument: use syslog(priority, \"%s\", msg) not syslog(priority, msg)."
+    },
+    {
+      "pattern": "\\b(malloc|calloc|realloc)\\s*\\(",
+      "reason": "CWE-401 / NIST SP 800-53 SA-15: C-style heap allocation bypasses RAII and requires manual memory management, leading to memory leaks and use-after-free vulnerabilities.",
+      "severity": "Medium",
+      "remediation": "Replace with std::make_unique<T>() or std::make_shared<T>() for automatic, exception-safe memory management."
+    },
+    {
+      "pattern": "\\bfree\\s*\\(",
+      "reason": "CWE-401 / NIST SP 800-53 SA-15: Raw free() bypasses RAII and is prone to double-free and use-after-free vulnerabilities.",
+      "severity": "Medium",
+      "remediation": "Use RAII and smart pointers (std::unique_ptr, std::shared_ptr) to ensure automatic, deterministic memory release."
+    },
+    {
+      "pattern": "\\bdelete\\s*\\[?\\]?\\s*\\w",
+      "reason": "CWE-401 / NIST SP 800-53 SA-15: Manual delete/delete[] bypasses RAII and is susceptible to double-free and use-after-free vulnerabilities.",
+      "severity": "Medium",
+      "remediation": "Replace raw new/delete pairs with std::make_unique or std::make_shared for exception-safe, leak-free resource management."
+    },
+    {
+      "pattern": "\\b(atoi|atof|atol|atoll)\\s*\\(",
+      "reason": "CWE-190 / CWE-252: These functions provide no error detection for invalid input and have undefined behavior on overflow — they silently return 0 for invalid input.",
+      "severity": "Medium",
+      "remediation": "Replace with std::from_chars (C++17) for error-detecting number parsing, or std::stoi/std::stol with exception handling."
+    },
+    {
+      "pattern": "\\bstrtok\\s*\\(",
+      "reason": "CWE-663 / POSIX: strtok() uses hidden internal static state and is not thread-safe — concurrent calls from multiple threads cause data races and unpredictable behavior.",
+      "severity": "Medium",
+      "remediation": "Replace strtok() with strtok_r() (POSIX) or use std::string::find() and std::string::substr() for safe, re-entrant tokenization."
+    },
+    {
+      "pattern": "EVP_des_|\\bEVP_rc4\\s*\\(|EVP_rc2_|EVP_bf_|\\bdes_cbc_",
+      "reason": "FIPS 140-3: DES, 3DES, RC4, RC2, and Blowfish are not FIPS 140-3 approved and are cryptographically weak.",
+      "severity": "High",
+      "remediation": "Replace with AES-256-GCM (EVP_aes_256_gcm()) via the OpenSSL EVP interface as required by FIPS 140-3."
+    },
+    {
+      "pattern": "EVP_aes_(128|192|256)_ecb\\s*\\(",
+      "reason": "FIPS 140-3 / CWE-327: AES in ECB mode is not semantically secure — identical plaintext blocks produce identical ciphertext, and it provides no authentication.",
+      "severity": "High",
+      "remediation": "Replace with EVP_aes_256_gcm() which provides authenticated encryption (AEAD) as required by FIPS 140-3."
+    },
+    {
+      "pattern": "(api_key|secret|token|private_key)\\s*=\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded secrets detected in C++ source — exposure in version control, logs, or compiled binaries is a critical risk.",
+      "severity": "High",
+      "remediation": "Remove hardcoded secrets. Use environment variables, a secrets manager (e.g., HashiCorp Vault), or an encrypted configuration store."
+    },
+    {
+      "pattern": "\\b(longjmp|siglongjmp)\\s*\\(",
+      "reason": "CWE-544 / CWE-111: longjmp() and siglongjmp() bypass C++ destructors and RAII, causing resource leaks, undefined behavior, and potential security vulnerabilities.",
+      "severity": "High",
+      "remediation": "Remove all uses of longjmp() from C++ code. Use C++ exceptions (throw/catch) for non-local error handling instead."
     }
   ]
 }
