@@ -41,6 +41,11 @@ Always complete the full scan before responding. Do not stop at the first findin
 | ANG-008 | `Math.random(` | High | FIPS 140-3 / NIST SP 800-90A: `Math.random()` is not cryptographically secure. | Use the Web Crypto API: `crypto.getRandomValues(new Uint8Array(32))` or `crypto.randomUUID()`. |
 | ANG-009 | `eval(` | Critical | OWASP A03: `eval()` enables arbitrary code execution. | Remove `eval()`. Angular's template engine should handle all dynamic rendering. |
 | ANG-010 | `password: '...'` / `password = '...'` (hardcoded literal) | High | OWASP A07 / NIST IA-5: Hardcoded password detected in source code. | Remove hardcoded passwords. Use Angular environments with injection tokens and load secrets from secure backend APIs. |
+| ANG-011 | `new Function(` | Critical | OWASP A03 / Angular Security: The `Function` constructor is equivalent to `eval()` and allows arbitrary code execution. | Remove `new Function()`. Use named functions, arrow functions, or Angular's component system for all dynamic behavior. |
+| ANG-012 | `document.write(` | High | OWASP A03 / Angular Security: `document.write()` with dynamic content enables XSS attacks. | Remove `document.write()`. Use Angular template bindings and DOM APIs (`createElement`, `textContent`, `appendChild`) instead. |
+| ANG-013 | `.nativeElement.innerHTML` (assignment) | High | OWASP A03 / Angular Security: Assigning to `nativeElement.innerHTML` directly bypasses Angular's built-in XSS sanitization. | Use Angular template bindings (`[innerHTML]` with `DomSanitizer`, or `[textContent]` for plain text) instead of direct DOM manipulation via `ElementRef`. |
+| ANG-014 | `apiKey / secretKey / accessKey / authToken = '...'` (hardcoded literal) | High | OWASP A07 / NIST IA-5: Hardcoded API key, secret key, access key, or auth token detected in source code. | Remove hardcoded credentials. Load API keys and secrets from Angular environment injection tokens backed by a secrets manager or secure backend API. Never commit credentials to source control. |
+| ANG-015 | `md5(` / `CryptoJS.MD5(` / `CryptoJS.SHA1(` | High | FIPS 140-3 / Guide §12.4: MD5 and SHA-1 are cryptographically broken and not FIPS 140-3 approved algorithms. | Use the Web Crypto API with FIPS-approved algorithms: `crypto.subtle.digest('SHA-256', data)` for hashing, and `crypto.getRandomValues()` for random values. |
 
 ---
 
