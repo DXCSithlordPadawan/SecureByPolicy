@@ -63,6 +63,42 @@
       "reason": "OWASP A07: Extracting a SecureString to plain text in memory reduces its security value.",
       "severity": "High",
       "remediation": "Keep credentials as SecureString or PSCredential objects throughout their lifecycle. Only extract to plain text when strictly required by a target API, and clear immediately after use."
+    },
+    {
+      "pattern": "\\[ScriptBlock\\]::Create\\(",
+      "reason": "OWASP A03 / NIST SP 800-53 SI-7: Dynamically creating script blocks from strings enables command injection when variable content is incorporated into the script text.",
+      "severity": "High",
+      "remediation": "Replace [ScriptBlock]::Create() with a static script block that accepts parameters: $sb = { param($Name) Get-Service -Name $Name }; & $sb -Name $serviceName."
+    },
+    {
+      "pattern": "Get-WmiObject",
+      "reason": "DISA STIG / NIST CM-7: Get-WmiObject is deprecated since PowerShell 3.0, lacks the improved security model of CIM cmdlets, and WMI query strings built with string concatenation are vulnerable to injection.",
+      "severity": "Medium",
+      "remediation": "Replace Get-WmiObject with Get-CimInstance using parameter binding: Get-CimInstance -ClassName Win32_Process -Filter \"Name = '$($name -replace \"'\", \"''\")'\""
+    },
+    {
+      "pattern": "EnableScriptBlockLogging[^\\n]*-Value\\s+0|EnableScriptBlockLogging[^\\n]*=\\s*0",
+      "reason": "DISA STIG WN10-CC-000326 / CIS 18.9.102.2 / NIST AU-2: Setting EnableScriptBlockLogging to 0 disables Script Block Logging, removing the critical forensic capability required by DISA STIG and CIS Level 2.",
+      "severity": "High",
+      "remediation": "Set EnableScriptBlockLogging to 1. Script Block Logging must remain enabled in all environments."
+    },
+    {
+      "pattern": "amsiContext|AmsiScanBuffer|amsiInitFailed|Reflection.*AmsiUtils",
+      "reason": "NIST SP 800-53 SI-3 / DISA STIG: AMSI bypass techniques disable malware scanning for PowerShell scripts, enabling execution of malicious payloads that would otherwise be detected.",
+      "severity": "Critical",
+      "remediation": "Never bypass AMSI. Ensure AMSI-integrated security solutions remain active. Remove all AMSI bypass code immediately."
+    },
+    {
+      "pattern": "Install-Module[^\\n]*-SkipPublisherCheck|Set-PSRepository[^\\n]*-InstallationPolicy\\s+Trusted",
+      "reason": "OWASP A06 / NIST SP 800-53 SI-7: Installing modules without publisher verification or marking repositories as trusted without proper vetting removes supply chain integrity controls.",
+      "severity": "Medium",
+      "remediation": "Remove -SkipPublisherCheck. Only mark repositories as Trusted after internal security vetting. Use Install-PSResource with signature verification from an approved internal repository."
+    },
+    {
+      "pattern": "powershell\\.exe[^\\n]*-[Vv]ersion\\s+2|powershell[^\\n]*-[Vv]er\\s+2",
+      "reason": "DISA STIG WN10-00-000155 / NIST CM-7: PowerShell version 2 lacks AMSI, Script Block Logging, Constrained Language Mode, and other security controls. Invoking -Version 2 bypasses all modern PowerShell security features.",
+      "severity": "High",
+      "remediation": "Remove all -Version 2 flags. Disable PowerShell v2 entirely: Disable-WindowsOptionalFeature -Online -FeatureName MicrosoftWindowsPowerShellV2Root."
     }
   ]
 }
