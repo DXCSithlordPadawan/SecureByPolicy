@@ -75,6 +75,42 @@
       "reason": "CWE-252 / OWASP A05: Unchecked malloc() return value — NULL pointer dereference on allocation failure.",
       "severity": "Medium",
       "remediation": "Always check malloc() return value: ptr = malloc(size); if (!ptr) { /* handle error */ }"
+    },
+    {
+      "pattern": "\\bscanf\\s*\\(\\s*\"[^\"]*%s",
+      "reason": "DISA STIG / CWE-120: scanf() with %s performs no bounds checking and can overflow the destination buffer.",
+      "severity": "High",
+      "remediation": "Replace with scanf(\"%Ns\", buf) specifying a maximum width (N = buffer size - 1), or use fgets(buf, sizeof(buf), stdin) for safer input."
+    },
+    {
+      "pattern": "\\bstrtok\\s*\\(",
+      "reason": "CWE-663 / POSIX: strtok() uses internal static state and is not thread-safe, causing data races in multi-threaded programs.",
+      "severity": "Medium",
+      "remediation": "Replace strtok() with strtok_r(str, delim, &saveptr) (POSIX) or strtok_s() (C11 Annex K) which are reentrant and thread-safe."
+    },
+    {
+      "pattern": "\\batoi\\s*\\(",
+      "reason": "CWE-190 / CWE-252: atoi() provides no error detection for invalid input or integer overflow — silently returns 0 for invalid input.",
+      "severity": "Medium",
+      "remediation": "Replace atoi() with strtol(str, &endptr, 10) and validate endptr, errno, and the numeric range to properly handle conversion errors."
+    },
+    {
+      "pattern": "\\bprintf\\s*\\(\\s*[^\"]",
+      "reason": "DISA STIG APSC-DV-002560 / CWE-134: Passing a non-literal format argument to printf() enables format string attacks — attackers can read memory, overwrite addresses, or crash the program.",
+      "severity": "High",
+      "remediation": "Always pass a string literal as the format argument: use printf(\"%s\", user_input) not printf(user_input). Never let user-controlled data be interpreted as a format string."
+    },
+    {
+      "pattern": "\\bfprintf\\s*\\([^,]+,\\s*[^\"]",
+      "reason": "DISA STIG APSC-DV-002560 / CWE-134: Passing a non-literal format argument to fprintf() enables format string attacks — attackers can read memory, overwrite addresses, or crash the program.",
+      "severity": "High",
+      "remediation": "Always pass a string literal as the format argument: use fprintf(stream, \"%s\", user_input) not fprintf(stream, user_input)."
+    },
+    {
+      "pattern": "\\bsyslog\\s*\\([^,]+,\\s*[^\"]",
+      "reason": "DISA STIG APSC-DV-002560 / CWE-134: Passing a non-literal format argument to syslog() enables format string attacks — attackers can read memory, overwrite addresses, or crash the program.",
+      "severity": "High",
+      "remediation": "Always pass a string literal as the format argument: use syslog(priority, \"%s\", user_input) not syslog(priority, user_input)."
     }
   ]
 }
