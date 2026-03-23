@@ -75,6 +75,48 @@
       "reason": "OWASP A07 / NIST IA-5: Hardcoded password detected in source code.",
       "severity": "High",
       "remediation": "Remove hardcoded passwords. Load credentials from environment variables (process.env.DB_PASSWORD) or a secrets manager."
+    },
+    {
+      "pattern": "\\.outerHTML\\s*=\\s*(?!['\"]\\s*['\"])",
+      "reason": "OWASP A03: Assigning to outerHTML with unsanitized data enables XSS attacks.",
+      "severity": "High",
+      "remediation": "Avoid outerHTML. Use textContent for plain text or sanitize HTML with DOMPurify.sanitize() before assigning to innerHTML on a replacement element."
+    },
+    {
+      "pattern": "\\.insertAdjacentHTML\\s*\\(",
+      "reason": "OWASP A03 / CIS Benchmark: insertAdjacentHTML() with unsanitized input enables XSS attacks.",
+      "severity": "High",
+      "remediation": "Use insertAdjacentElement() or insertAdjacentText() for safe insertion, or sanitize HTML with DOMPurify.sanitize() before use."
+    },
+    {
+      "pattern": "setTimeout\\s*\\(\\s*['\"]",
+      "reason": "OWASP A03: Passing a string to setTimeout() is equivalent to eval() and enables arbitrary code injection.",
+      "severity": "High",
+      "remediation": "Pass a function reference instead of a string: use () => myFunction() or a named function reference."
+    },
+    {
+      "pattern": "setInterval\\s*\\(\\s*['\"]",
+      "reason": "OWASP A03: Passing a string to setInterval() is equivalent to eval() and enables arbitrary code injection.",
+      "severity": "High",
+      "remediation": "Pass a function reference instead of a string: use () => myFunction() or a named function reference."
+    },
+    {
+      "pattern": "Object\\.prototype\\.\\w+\\s*=|\\[['\"]constructor['\"]\\]",
+      "reason": "OWASP A08 / CIS Benchmark: Direct modification of Object.prototype or manipulation via the constructor chain enables prototype pollution.",
+      "severity": "Critical",
+      "remediation": "Never assign to Object.prototype. Treat constructor and prototype as forbidden keys alongside __proto__. Use Object.create(null) for data containers and validate all JSON input keys against a whitelist."
+    },
+    {
+      "pattern": "createHash\\s*\\(\\s*['\"]sha1['\"]|digest\\s*\\(\\s*['\"]SHA-1['\"]",
+      "reason": "FIPS 140-3 / NIST SP 800-53 SC-13: SHA-1 is not an approved algorithm under FIPS 140-3 and must not be used for cryptographic operations.",
+      "severity": "High",
+      "remediation": "Replace SHA-1 with an approved algorithm. Use crypto.subtle.digest('SHA-256', data) (Web Crypto API) or createHash('sha256') (Node.js crypto)."
+    },
+    {
+      "pattern": "(?:api_?key|secret|auth_?token|apiKey)\\s*[:=]\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded API key or secret detected in source code.",
+      "severity": "High",
+      "remediation": "Remove hardcoded secrets. Load all credentials and API keys from environment variables (process.env.API_KEY) or a dedicated secrets manager."
     }
   ]
 }
