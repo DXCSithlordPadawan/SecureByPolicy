@@ -63,6 +63,36 @@
       "reason": "OWASP A03: JavaScript pseudo-protocol in href attributes enables XSS attacks.",
       "severity": "Critical",
       "remediation": "Never use javascript: in href. Validate that all URLs start with https:// or are relative paths."
+    },
+    {
+      "pattern": "\\.innerHTML\\s*=\\s*[^=]",
+      "reason": "OWASP A03 / DISA STIG: Assigning to .innerHTML with unsanitized data bypasses React's built-in XSS protection and can inject malicious scripts.",
+      "severity": "High",
+      "remediation": "Use element.textContent for plain text, or sanitize with DOMPurify.sanitize() before assigning to innerHTML. Prefer React-controlled rendering via JSX and component state."
+    },
+    {
+      "pattern": "target=['\"]_blank['\"](?![^>\\n]*rel=['\"][^'\"]*noopener[^'\"]*noreferrer)",
+      "reason": "OWASP A05 / CIS Level 2: Missing rel=\"noopener noreferrer\" (both values required) on target=\"_blank\" links exposes window.opener and enables tabnapping attacks.",
+      "severity": "Medium",
+      "remediation": "Add rel=\"noopener noreferrer\" to every element that uses target=\"_blank\"."
+    },
+    {
+      "pattern": "(?:apiKey|api_key|secretKey|secret_key|accessToken|access_token|authToken)\\s*[:=]\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded API key or authentication token detected in source code. Secrets committed to source control are exposed in repositories and build artifacts.",
+      "severity": "High",
+      "remediation": "Remove all hardcoded credentials. Load API keys and tokens from environment variables (process.env.REACT_APP_API_KEY) or a secrets manager at runtime."
+    },
+    {
+      "pattern": "'use server'",
+      "reason": "CVE-2025-55182 / OWASP A03: React 19 Server Actions must validate all inputs using schema validation. This pattern flags every 'use server' directive for mandatory review — each flagged function must be inspected to confirm that Zod or Yup schema validation is present before any formData input is used in a server-side operation.",
+      "severity": "Critical",
+      "remediation": "Validate all Server Action inputs using Zod or Yup schema validation before use. Ensure every 'use server' function validates its formData inputs before passing them to server-side operations. If validation is already present, this finding can be marked as reviewed."
+    },
+    {
+      "pattern": "devTools\\s*:\\s*true",
+      "reason": "OWASP A02 / CIS Level 2: Redux DevTools enabled unconditionally in production exposes the full application state tree, including potentially sensitive data, to browser extensions and developer tools.",
+      "severity": "Medium",
+      "remediation": "Guard the flag with an environment check: devTools: process.env.NODE_ENV !== 'production'."
     }
   ]
 }
