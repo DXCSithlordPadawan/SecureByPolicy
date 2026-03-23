@@ -38,6 +38,13 @@ EXTENSION_TO_POLICY = {
     # Angular .ts files share the TypeScript mapping; Angular HTML templates use
     # angular_policy.json only when Angular-specific directives are present.
     # To avoid misclassifying plain HTML, .html is not mapped here.
+    # PL/SQL (Oracle) source files
+    ".plsql": "plsql_policy.json",
+    ".pkb":   "plsql_policy.json",
+    ".pks":   "plsql_policy.json",
+    ".prc":   "plsql_policy.json",
+    ".fnc":   "plsql_policy.json",
+    ".trg":   "plsql_policy.json",
 }
 
 
@@ -96,6 +103,7 @@ class PolicyEnforcer:
         ".ts", ".tsx", ".jsx", ".go", ".rs", ".sh",
         ".bash", ".ps1", ".psm1", ".psd1", ".c", ".h",
         ".cpp", ".cc", ".cxx", ".hpp", ".hh",
+        ".plsql", ".pkb", ".pks", ".prc", ".fnc", ".trg",
     )
 
     def scan_diff(self, commit_hash):
