@@ -1,0 +1,134 @@
+{
+  "standard": "T-SQL Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10-2025", "NIST-SP-800-53-Rev5", "DISA-STIG-SQL2022-v1r1", "FIPS-140-3", "CIS-SQL-Server-L2"],
+  "file_extensions": [".sql", ".tsql"],
+  "forbidden_patterns": [
+    {
+      "pattern": "\\bEXEC\\s*\\(\\s*@",
+      "reason": "OWASP A05:2025 / CWE-89 / DISA SQL6-D0-013800: Directly executing a T-SQL variable with EXEC() is a primary SQL injection vector. The variable may contain attacker-controlled concatenated SQL.",
+      "severity": "Critical",
+      "remediation": "Replace EXEC(@sql) with EXEC sp_executesql @sql, N'@param TYPE', @param = @value. Use typed parameters to prevent injection. Never pass concatenated strings directly into EXEC()."
+    },
+    {
+      "pattern": "N?'[^']*'\\s*\\+\\s*@\\w+|@\\w+\\s*\\+\\s*N?'[^']*'",
+      "reason": "OWASP A05:2025 / CWE-89: Building SQL strings via concatenation with T-SQL variables enables SQL injection when the result is executed dynamically.",
+      "severity": "Critical",
+      "remediation": "Build dynamic SQL using only sp_executesql with fully typed parameters. Never concatenate @variable values into a SQL string. Use QUOTENAME() only for object name identifiers, not for user-supplied data values."
+    },
+    {
+      "pattern": "CHECK_POLICY\\s*=\\s*OFF",
+      "reason": "CIS SQL Server Benchmark Level 2 / NIST SP 800-53 IA-5: Disabling the Windows password policy check on SQL logins allows weak or non-expiring passwords, increasing credential compromise risk.",
+      "severity": "High",
+      "remediation": "Always set CHECK_POLICY = ON when creating or altering SQL logins: CREATE LOGIN [name] WITH PASSWORD = '...', CHECK_POLICY = ON, CHECK_EXPIRATION = ON."
+    },
+    {
+      "pattern": "CHECK_EXPIRATION\\s*=\\s*OFF",
+      "reason": "CIS SQL Server Benchmark Level 2 / NIST SP 800-53 IA-5: Disabling password expiration allows SQL login credentials to remain unchanged indefinitely, increasing the risk of credential compromise.",
+      "severity": "High",
+      "remediation": "Always set CHECK_EXPIRATION = ON when creating or altering SQL logins. Ensure passwords are rotated regularly through a secrets management process."
+    },
+    {
+      "pattern": "\\bGRANT\\b[^;\\n]+\\bTO\\b\\s+\\[?PUBLIC\\]?",
+      "reason": "NIST SP 800-53 AC-6 / CIS Level 2 / OWASP A01:2025: Granting permissions to the PUBLIC role extends that access to every user in the database, violating least privilege.",
+      "severity": "High",
+      "remediation": "Revoke PUBLIC grants and assign permissions to specific, named roles. Apply the principle of least privilege: grant only what each role requires to function."
+    },
+    {
+      "pattern": "\\bHASHBYTES\\s*\\(\\s*N?'MD5'",
+      "reason": "FIPS 140-3 / CWE-327 / NIST SC-13: MD5 is a cryptographically broken hash algorithm, prohibited under FIPS 140-3. Its collision resistance is fully broken; it must not be used for integrity verification or any security purpose.",
+      "severity": "High",
+      "remediation": "Replace with HASHBYTES('SHA2_256', ...) or HASHBYTES('SHA2_512', ...) for FIPS 140-3 compliant hashing."
+    },
+    {
+      "pattern": "\\bHASHBYTES\\s*\\(\\s*N?'SHA1'",
+      "reason": "FIPS 140-3 / CWE-327 / NIST SP 800-131A: SHA-1 is deprecated and prohibited under FIPS 140-3 for new applications. It is no longer considered collision-resistant.",
+      "severity": "High",
+      "remediation": "Replace with HASHBYTES('SHA2_256', ...) or HASHBYTES('SHA2_512', ...). SHA-1 must not be used for any new security-sensitive operation."
+    },
+    {
+      "pattern": "\\bPWDENCRYPT\\s*\\(",
+      "reason": "FIPS 140-3 / NIST SC-13: PWDENCRYPT uses a proprietary, non-FIPS-compliant algorithm and is deprecated. It must not be used for password storage or any cryptographic purpose.",
+      "severity": "High",
+      "remediation": "Do not store passwords in SQL Server. Delegate authentication to an identity provider. If unavoidable, use PBKDF2 or Argon2 at the application layer and store the resulting hash as VARBINARY(512)."
+    },
+    {
+      "pattern": "\\bALGORITHM\\s*=\\s*(AES_128|TRIPLE_DES|RC4|DES)\\b",
+      "reason": "FIPS 140-3 / NIST SC-28 / DISA SQL6-D0-001700: Database encryption keys must use AES_256 for FIPS 140-3 compliance. AES_128, Triple DES, RC4, and DES do not meet the minimum required key strength.",
+      "severity": "High",
+      "remediation": "Use WITH ALGORITHM = AES_256 in all CREATE DATABASE ENCRYPTION KEY statements to ensure FIPS 140-3 compliant Transparent Data Encryption."
+    },
+    {
+      "pattern": "\\bRAISERROR\\s*\\(\\s*ERROR_MESSAGE\\s*\\(",
+      "reason": "OWASP A10:2025 / NIST SI-11 / CWE-209: Returning raw SQL error messages to callers exposes internal schema names, object names, line numbers, and query fragments to potential attackers.",
+      "severity": "High",
+      "remediation": "Log the full error details to an internal audit table using ERROR_MESSAGE(), ERROR_LINE(), and ERROR_PROCEDURE(). Return only a generic message to the caller: RAISERROR('An internal error occurred. Contact your administrator.', 16, 1)."
+    },
+    {
+      "pattern": "\\bPRINT\\b[^\\n]*(?i:error|line|procedure|object|column)",
+      "reason": "OWASP A10:2025 / NIST SI-11: PRINT statements that output internal error details (line numbers, object names, procedure names) disclose schema information to application callers or logs that may be attacker-accessible.",
+      "severity": "Medium",
+      "remediation": "Remove PRINT statements that expose internal error details. Log details to a restricted audit.ErrorLog table and return only generic messages to callers."
+    },
+    {
+      "pattern": "\\bTRUSTWORTHY\\s+ON\\b",
+      "reason": "DISA STIG / CIS SQL Server Level 2 / NIST CM-6: Setting TRUSTWORTHY ON allows database objects to access resources outside the database using the database owner context. This is a privilege escalation vector, particularly with CLR assemblies.",
+      "severity": "High",
+      "remediation": "Set TRUSTWORTHY OFF on all application databases: ALTER DATABASE [name] SET TRUSTWORTHY OFF. If CLR assemblies require TRUSTWORTHY, use signed assemblies with certificates instead."
+    },
+    {
+      "pattern": "\\bDB_CHAINING\\s+ON\\b",
+      "reason": "NIST SP 800-53 AC-3 / CIS Level 2: Enabling cross-database ownership chaining allows stored procedures in one database to access objects in another database using the procedure owner's permissions, bypassing explicit permission checks and enabling privilege escalation.",
+      "severity": "Medium",
+      "remediation": "Set DB_CHAINING OFF on all databases except those with explicit, documented justification: ALTER DATABASE [name] SET DB_CHAINING OFF."
+    },
+    {
+      "pattern": "\\bxp_cmdshell\\b",
+      "reason": "DISA SQL6-D0-003100 (CAT I) / CIS Level 2: xp_cmdshell allows SQL Server to execute operating system commands, providing a direct path from database compromise to full server compromise. It must be disabled and never referenced in application code.",
+      "severity": "Critical",
+      "remediation": "Remove all references to xp_cmdshell. Disable it via: EXEC sp_configure 'xp_cmdshell', 0; RECONFIGURE. Use dedicated application-tier processes for any OS-level operations."
+    },
+    {
+      "pattern": "sp_configure\\s+['\"]?xp_cmdshell['\"]?\\s*,\\s*1",
+      "reason": "DISA SQL6-D0-003100 (CAT I) / CIS Level 2: Explicitly enabling xp_cmdshell via sp_configure opens a direct OS command execution path from the database. This is a CAT I finding and represents an unacceptable risk.",
+      "severity": "Critical",
+      "remediation": "Remove the sp_configure 'xp_cmdshell', 1 statement. If OS-level operations are required, implement them in a separate application-tier service with appropriate privilege separation."
+    },
+    {
+      "pattern": "sp_configure\\s+['\"]?Ole Automation Procedures['\"]?\\s*,\\s*1",
+      "reason": "CIS SQL Server Benchmark Level 2 / NIST CM-7: Enabling OLE Automation Procedures allows T-SQL to instantiate COM objects and execute arbitrary automation code, significantly expanding the attack surface.",
+      "severity": "High",
+      "remediation": "Disable OLE Automation Procedures: EXEC sp_configure 'Ole Automation Procedures', 0; RECONFIGURE. Use application-tier code for any automation tasks."
+    },
+    {
+      "pattern": "sp_configure\\s+['\"]?Ad Hoc Distributed Queries['\"]?\\s*,\\s*1",
+      "reason": "CIS SQL Server Benchmark Level 2 / NIST CM-7: Enabling Ad Hoc Distributed Queries activates OPENROWSET and OPENDATASOURCE for arbitrary remote connections, enabling data exfiltration and lateral movement.",
+      "severity": "High",
+      "remediation": "Disable Ad Hoc Distributed Queries: EXEC sp_configure 'Ad Hoc Distributed Queries', 0; RECONFIGURE. Use Linked Servers with explicit security controls if remote data access is required."
+    },
+    {
+      "pattern": "sp_configure\\s+['\"]?clr enabled['\"]?\\s*,\\s*1",
+      "reason": "CIS SQL Server Benchmark Level 2 / DISA SQL6-D0-003000: Enabling CLR without also enabling CLR strict security allows UNSAFE and EXTERNAL_ACCESS assemblies that are not signed, enabling arbitrary code execution within SQL Server.",
+      "severity": "Medium",
+      "remediation": "If CLR is required, also enable CLR strict security: EXEC sp_configure 'clr strict security', 1; RECONFIGURE. All CLR assemblies must be signed with a database-trusted certificate or asymmetric key."
+    },
+    {
+      "pattern": "sp_configure\\s+['\"]?scan for startup procs['\"]?\\s*,\\s*1",
+      "reason": "CIS SQL Server Benchmark Level 2 / NIST CM-7: Enabling startup stored procedures allows arbitrary T-SQL to execute automatically at SQL Server startup, persisting attacker-created backdoors across server restarts.",
+      "severity": "High",
+      "remediation": "Disable startup procedure scanning: EXEC sp_configure 'scan for startup procs', 0; RECONFIGURE. If startup procedures are required, review and document each one explicitly."
+    },
+    {
+      "pattern": "\\b(CREATE|ALTER)\\s+LOGIN\\b[^;\\n]+\\bPASSWORD\\s*=\\s*N?'[^']{4,}'",
+      "reason": "OWASP A07:2025 / NIST IA-5: Hardcoded password literals in T-SQL scripts are exposed to anyone with access to source code, version control history, or deployment artifacts, enabling credential compromise.",
+      "severity": "High",
+      "remediation": "Remove hardcoded passwords from T-SQL scripts. Retrieve passwords at deployment time from a secrets manager (HashiCorp Vault, Azure Key Vault, AWS Secrets Manager) and pass them securely to the login creation script."
+    },
+    {
+      "pattern": "BEGIN\\s+CATCH[\\s\\S]*?\\bTHROW\\s*;[\\s\\S]*?END\\s+CATCH",
+      "reason": "OWASP A10:2025 / NIST SI-11 / CWE-209: Using THROW inside a CATCH block re-raises the original SQL error with its full internal details (message, line number, object name) to the application caller, disclosing schema information.",
+      "severity": "High",
+      "remediation": "Log the full error internally to audit.ErrorLog, then raise a generic message: RAISERROR('An internal error occurred. Contact your administrator.', 16, 1). Do not use bare THROW in CATCH blocks that propagate errors to callers."
+    }
+  ]
+}
