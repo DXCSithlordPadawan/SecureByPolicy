@@ -75,6 +75,54 @@
       "reason": "OWASP A03: Shell execution with variable interpolation is vulnerable to command injection.",
       "severity": "High",
       "remediation": "Use exec.Command with separate arguments. Never construct shell commands with string interpolation from user input."
+    },
+    {
+      "pattern": "\"text/template\"",
+      "reason": "OWASP A03: text/template does not auto-escape HTML special characters, enabling XSS when rendering user-controlled data in HTML responses.",
+      "severity": "High",
+      "remediation": "Replace with html/template which automatically escapes HTML special characters and prevents XSS."
+    },
+    {
+      "pattern": "\"golang.org/x/crypto/blowfish\"",
+      "reason": "FIPS 140-3: Blowfish is not an approved cryptographic algorithm under FIPS 140-3 and must not be used in regulated environments.",
+      "severity": "High",
+      "remediation": "Replace with AES-256-GCM using crypto/aes and crypto/cipher packages."
+    },
+    {
+      "pattern": "rsa\\.GenerateKey\\s*\\([^,]+,\\s*(?:512|768|1024|1536)\\b",
+      "reason": "NIST SP 800-131A / FIPS 140-3: RSA keys shorter than 2048 bits are cryptographically weak and not FIPS-approved.",
+      "severity": "High",
+      "remediation": "Use rsa.GenerateKey(rand.Reader, 2048) at minimum; 4096-bit keys are recommended for long-term security."
+    },
+    {
+      "pattern": "http\\.Error\\s*\\(\\s*\\w+\\s*,\\s*err\\.Error\\(\\)",
+      "reason": "OWASP A09 / NIST SI-11: Returning raw internal error messages to HTTP clients exposes system internals, stack traces, and sensitive implementation details.",
+      "severity": "High",
+      "remediation": "Return a generic message to the client and log detailed errors internally using slog."
+    },
+    {
+      "pattern": "http\\.ListenAndServe\\s*\\(",
+      "reason": "NIST SC-8 / STIG APSC-DV-000560: Using plain HTTP transmits data without encryption, exposing sensitive information to interception.",
+      "severity": "High",
+      "remediation": "Replace with http.ListenAndServeTLS() and configure TLS 1.2+ with a valid certificate."
+    },
+    {
+      "pattern": "(?i)(?:secret|api_key|token|apikey)\\s*:=\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded API keys, tokens, and secrets in source code expose credentials to anyone with repository access.",
+      "severity": "High",
+      "remediation": "Load secrets from environment variables (os.Getenv(\"API_KEY\")) or a secrets manager."
+    },
+    {
+      "pattern": "Secure:\\s*false|HttpOnly:\\s*false",
+      "reason": "OWASP A07 / NIST SC-23: Cookies without Secure: true can be sent over unencrypted HTTP; cookies without HttpOnly: true are accessible to JavaScript, enabling session hijacking via XSS.",
+      "severity": "High",
+      "remediation": "Set Secure: true, HttpOnly: true, and SameSite: http.SameSiteStrictMode on all session and authentication cookies."
+    },
+    {
+      "pattern": "filepath\\.Join\\s*\\([^)]*r\\.URL\\.Path|filepath\\.Join\\s*\\([^)]*r\\.FormValue",
+      "reason": "OWASP A03: Constructing file paths using unvalidated user-supplied input enables path traversal attacks that can expose arbitrary files.",
+      "severity": "High",
+      "remediation": "Use filepath.Base() to strip directory components from user input. Verify the resolved path begins with the intended directory using strings.HasPrefix."
     }
   ]
 }
