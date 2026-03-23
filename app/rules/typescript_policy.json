@@ -69,6 +69,30 @@
       "reason": "OWASP A05: TypeScript suppression comments disable type-checking, potentially masking security vulnerabilities.",
       "severity": "Medium",
       "remediation": "Fix the underlying TypeScript error rather than suppressing it. If necessary, use a specific @ts-expect-error with a documented justification."
+    },
+    {
+      "pattern": "document\\.write\\s*\\(",
+      "reason": "OWASP A03: document.write() with dynamic content enables XSS attacks by injecting arbitrary HTML into the page.",
+      "severity": "High",
+      "remediation": "Remove document.write(). Use DOM manipulation methods (createElement, appendChild, textContent) instead."
+    },
+    {
+      "pattern": "dangerouslySetInnerHTML\\s*=",
+      "reason": "OWASP A03: Using dangerouslySetInnerHTML in React with unsanitized data enables XSS attacks.",
+      "severity": "High",
+      "remediation": "Sanitize HTML with DOMPurify.sanitize() before passing to dangerouslySetInnerHTML, or use a SafeHTML branded type wrapper as described in the TypeScript Security Best Practices Guide."
+    },
+    {
+      "pattern": "createHash\\s*\\(\\s*['\"](?:sha1|md4|md2)['\"]|digest\\s*\\(\\s*['\"]SHA-1['\"]",
+      "reason": "FIPS 140-3 / NIST SP 800-53 SC-13: SHA-1 (and MD4/MD2) are not in the FIPS 140-3 approved algorithm list and must not be used for cryptographic operations.",
+      "severity": "High",
+      "remediation": "Replace with a FIPS 140-3 approved algorithm: createHash('sha256') (Node.js) or crypto.subtle.digest('SHA-256', data) (Web Crypto API)."
+    },
+    {
+      "pattern": "(?:api_?key|apikey|auth_?token|secret)\\s*[:=]\\s*['\"][^'\"]{4,}['\"]",
+      "reason": "OWASP A07 / NIST IA-5: Hardcoded API key, authentication token, or secret detected in source code. Secrets in source code are exposed in version control and build artifacts.",
+      "severity": "High",
+      "remediation": "Remove hardcoded secrets. Load all credentials and API keys from environment variables (process.env.API_KEY) or a dedicated secrets manager."
     }
   ]
 }
