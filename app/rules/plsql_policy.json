@@ -1,0 +1,116 @@
+{
+  "standard": "PL/SQL Security Best Practices Guide",
+  "version": "1.0",
+  "compliance_baseline": ["OWASP-Top10-2025", "NIST-SP-800-53-Rev5", "DISA-STIG-Oracle19c-V1R4", "FIPS-140-3", "CIS-Oracle-DB-L2"],
+  "file_extensions": [".sql", ".plsql", ".pkb", ".pks", ".prc", ".fnc", ".trg"],
+  "forbidden_patterns": [
+    {
+      "pattern": "\\bEXECUTE\\s+IMMEDIATE\\b[^;]*\\|\\|",
+      "reason": "OWASP A05:2025 / CWE-89 / DISA V-270525: Concatenating values directly into the string passed to EXECUTE IMMEDIATE is the primary PL/SQL injection vector. The concatenated string is executed verbatim by the Oracle engine.",
+      "severity": "Critical",
+      "remediation": "Replace concatenated values with bind variables: EXECUTE IMMEDIATE 'SELECT ... WHERE col = :1' INTO v_result USING p_value;. Never pass concatenated user input to EXECUTE IMMEDIATE. Use DBMS_ASSERT only for object-name identifiers, not for data values."
+    },
+    {
+      "pattern": "\\bDBMS_SQL\\.PARSE\\s*\\([^)]*\\|\\|",
+      "reason": "OWASP A05:2025 / CWE-89: Building the SQL string passed to DBMS_SQL.PARSE via concatenation with external values is a SQL injection vector.",
+      "severity": "Critical",
+      "remediation": "Build the SQL string skeleton using only literal text and bind-variable placeholders. Use DBMS_SQL.BIND_VARIABLE to supply all values. Never concatenate untrusted input into the string passed to DBMS_SQL.PARSE."
+    },
+    {
+      "pattern": "\\bGRANT\\b[^;\\n]+\\bTO\\b\\s+PUBLIC\\b",
+      "reason": "NIST SP 800-53 AC-6 / CIS Oracle Level 2 / OWASP A01:2025: Granting privileges to PUBLIC extends that access to every user in the database, including future accounts, violating the principle of least privilege.",
+      "severity": "High",
+      "remediation": "Revoke PUBLIC grants and assign privileges only to named application roles: GRANT EXECUTE ON app.pkg_orders TO app_role;. Application users are then granted membership in the role, not direct object access."
+    },
+    {
+      "pattern": "\\bGRANT\\b[^;\\n]+\\bANY\\b[^;\\n]+\\bTO\\b",
+      "reason": "NIST SP 800-53 AC-6 / CWE-272 / DISA V-270525: ANY system privileges (e.g. EXECUTE ANY PROCEDURE, SELECT ANY TABLE) grant unrestricted access across all schemas. These are reserved for DBAs and must never be assigned to application accounts.",
+      "severity": "High",
+      "remediation": "Remove ANY privilege grants from application accounts. Apply the principle of least privilege: grant explicit, schema-qualified object privileges only (GRANT SELECT ON app.orders TO app_role)."
+    },
+    {
+      "pattern": "\\bDBMS_CRYPTO\\b[^;\\n]*\\bHASH_MD[45]\\b",
+      "reason": "FIPS 140-3 / CWE-327 / NIST SC-13: MD4 and MD5 are cryptographically broken hash algorithms prohibited under FIPS 140-3. MD5's collision resistance is fully broken and must not be used for any security purpose.",
+      "severity": "High",
+      "remediation": "Replace with DBMS_CRYPTO.HASH_SH256 (SHA-256) or DBMS_CRYPTO.HASH_SH512 (SHA-512) for FIPS 140-3 compliant hashing: DBMS_CRYPTO.HASH(p_data, DBMS_CRYPTO.HASH_SH256)."
+    },
+    {
+      "pattern": "\\bDBMS_CRYPTO\\b[^;\\n]*\\bHASH_SH1\\b",
+      "reason": "FIPS 140-3 / CWE-327 / NIST SP 800-131A: SHA-1 is deprecated and prohibited under FIPS 140-3 for new applications. It is no longer considered collision-resistant.",
+      "severity": "High",
+      "remediation": "Replace with DBMS_CRYPTO.HASH_SH256 or DBMS_CRYPTO.HASH_SH512: DBMS_CRYPTO.HASH(p_data, DBMS_CRYPTO.HASH_SH256). SHA-1 must not be used for any new security-sensitive operation."
+    },
+    {
+      "pattern": "\\bDBMS_CRYPTO\\b[^;\\n]*\\bENCRYPT_(DES|3DES|3DES_2KEY|RC4)\\b",
+      "reason": "FIPS 140-3 / CWE-327 / NIST SC-13: DES, Triple DES, and RC4 are prohibited under FIPS 140-3. DES has an effective key length of 56 bits; 3DES is deprecated; RC4 is a stream cipher with known weaknesses.",
+      "severity": "High",
+      "remediation": "Replace with DBMS_CRYPTO.ENCRYPT_AES256 combined with DBMS_CRYPTO.CHAIN_CBC and DBMS_CRYPTO.PAD_PKCS5 for FIPS 140-3 compliant symmetric encryption. Use a 32-byte (256-bit) key."
+    },
+    {
+      "pattern": "\\bDBMS_OBFUSCATION_TOOLKIT\\b",
+      "reason": "FIPS 140-3 / NIST SC-13 / CIS Oracle Level 2: DBMS_OBFUSCATION_TOOLKIT uses DES and MD5, both of which are prohibited under FIPS 140-3. This package is deprecated and must not be used in any security-sensitive context.",
+      "severity": "High",
+      "remediation": "Remove all references to DBMS_OBFUSCATION_TOOLKIT. Replace with DBMS_CRYPTO using FIPS 140-3 approved algorithms: ENCRYPT_AES256 for symmetric encryption and HASH_SH256/HASH_SH512 for hashing."
+    },
+    {
+      "pattern": "\\bRAISE_APPLICATION_ERROR\\s*\\([^)]*SQLERRM",
+      "reason": "OWASP A10:2025 / NIST SI-11 / CWE-209: Passing SQLERRM as the message argument to RAISE_APPLICATION_ERROR forwards raw Oracle error text to the caller. Oracle error messages contain internal schema names, object names, line numbers, and query fragments.",
+      "severity": "High",
+      "remediation": "Log the full error internally using an autonomous-transaction audit procedure. Return only a generic message to the caller: RAISE_APPLICATION_ERROR(-20099, 'Operation failed. Contact your administrator.');. Never include SQLERRM, SQLCODE, or stack trace text in messages returned to callers."
+    },
+    {
+      "pattern": "\\bDBMS_OUTPUT\\.(PUT_LINE|PUT)\\s*\\([^)]*(?i:SQLERRM|SQLCODE|error|exception|ORA-)",
+      "reason": "OWASP A10:2025 / NIST SI-11: DBMS_OUTPUT in production procedures may expose internal Oracle error details (codes, messages, object names) to application clients that enable DBMS_OUTPUT.",
+      "severity": "Medium",
+      "remediation": "Remove DBMS_OUTPUT calls that expose internal error details from production code. Log diagnostic information to a restricted audit table via an autonomous-transaction procedure. Use DBMS_OUTPUT only in development/test environments."
+    },
+    {
+      "pattern": "(?i)\\b(password|passwd|secret|credential|api_key)\\s*(:=|VARCHAR2[^:]*:=)\\s*'[^']{1,}'",
+      "reason": "OWASP A07:2025 / NIST IA-5: Hardcoded credential literals embedded in PL/SQL source are exposed to anyone with access to source code, version control history, DBA_SOURCE, or deployment artifacts, enabling credential compromise.",
+      "severity": "High",
+      "remediation": "Remove hardcoded credentials from PL/SQL code. Retrieve secrets at runtime from Oracle Wallet, an application context, or a secrets manager (HashiCorp Vault, AWS Secrets Manager, Azure Key Vault). Never store credentials as literals in source code."
+    },
+    {
+      "pattern": "\\bCREATE\\s+PUBLIC\\s+DATABASE\\s+LINK\\b",
+      "reason": "NIST SP 800-53 SC-7 / CIS Oracle Level 2: Public database links are accessible to all database users and represent an uncontrolled lateral-movement path to remote databases. They bypass the principle of least privilege.",
+      "severity": "High",
+      "remediation": "Remove public database links. Create private, owner-specific database links only for explicitly authorised integrations: CREATE DATABASE LINK priv_link CONNECT TO ... USING '...'. Apply ACL controls and document each link as a network exception."
+    },
+    {
+      "pattern": "\\bENCRYPTION\\s+USING\\s+'(DES|3DES168|AES128)'",
+      "reason": "FIPS 140-3 / NIST SC-28 / DISA V-270535: Transparent Data Encryption must use AES-256 for FIPS 140-3 compliance. AES-128 does not meet US Federal minimum key-strength requirements; DES and 3DES are prohibited.",
+      "severity": "High",
+      "remediation": "Use ENCRYPTION USING 'AES256' in all TDE tablespace and column encryption statements: CREATE TABLESPACE secure_data ... ENCRYPTION USING 'AES256' DEFAULT STORAGE (ENCRYPT);"
+    },
+    {
+      "pattern": "\\bREMOTE_OS_AUTHENT\\s*=\\s*TRUE\\b",
+      "reason": "DISA STIG Oracle 19c V1R4 (CAT I) / NIST IA-3: REMOTE_OS_AUTHENT = TRUE allows Oracle to authenticate users based on the client-supplied OS username over the network without any cryptographic verification. This enables trivial impersonation attacks.",
+      "severity": "Critical",
+      "remediation": "Set REMOTE_OS_AUTHENT = FALSE: ALTER SYSTEM SET REMOTE_OS_AUTHENT = FALSE SCOPE = SPFILE; and restart the database. This is a CAT I DISA STIG finding and must be remediated immediately."
+    },
+    {
+      "pattern": "\\bUTL_FILE_DIR\\s*=\\s*['\"]?[^'\"\\s;]+",
+      "reason": "CIS Oracle Database Benchmark Level 2 / NIST CM-7: Setting UTL_FILE_DIR to any value (including *) grants UTL_FILE access to arbitrary file-system paths for all database users, bypassing Oracle's DIRECTORY object access controls.",
+      "severity": "High",
+      "remediation": "Set UTL_FILE_DIR to empty: ALTER SYSTEM SET UTL_FILE_DIR = '' SCOPE = SPFILE;. Use CREATE DIRECTORY objects with explicit GRANT READ/WRITE to named accounts for all file I/O operations."
+    },
+    {
+      "pattern": "\\bAUTHID\\s+DEFINER\\b",
+      "reason": "NIST SP 800-53 AC-3 / OWASP A06:2025 / CIS Oracle Level 2: AUTHID DEFINER causes the procedure to execute with the privileges of its owner, not the caller. If the owner holds elevated privileges, any caller temporarily inherits them during execution, enabling privilege escalation.",
+      "severity": "Medium",
+      "remediation": "Prefer AUTHID CURRENT_USER for utility procedures accessible by multiple roles. Use AUTHID DEFINER only when the procedure must perform privileged operations on behalf of a less-privileged caller, and document the justification with a code comment. Review each occurrence to ensure the privilege elevation is intentional and documented."
+    },
+    {
+      "pattern": "\\bEXCEPTION\\s+WHEN\\s+OTHERS\\s+THEN\\s+NULL\\s*;",
+      "reason": "OWASP A10:2025 / NIST SI-11 / CIS Oracle Level 2: Swallowing all exceptions with WHEN OTHERS THEN NULL in business logic creates a fail-open condition. Errors are lost, data integrity cannot be guaranteed, and security violations go undetected.",
+      "severity": "High",
+      "remediation": "Replace with structured handling: log the error to the audit table via an autonomous-transaction procedure, then re-raise a generic application error or allow the exception to propagate. Only use WHEN OTHERS THEN NULL inside dedicated audit-logging subprograms where audit failure must not break the main transaction."
+    },
+    {
+      "pattern": "\\bWHEN\\s+OTHERS\\s+THEN[\\s\\S]{0,500}?\\bRAISE\\s*;",
+      "reason": "OWASP A10:2025 / NIST SI-11 / CWE-209: Re-raising the original Oracle exception with a bare RAISE statement discloses internal schema details (table names, column names, constraint names, line numbers) to the application layer.",
+      "severity": "High",
+      "remediation": "Log internal error details to app.audit_log via an autonomous transaction. Return a generic error message to the caller using RAISE_APPLICATION_ERROR(-20099, 'Operation failed. Contact your administrator.');. Do not re-raise raw Oracle exceptions in any code path reachable by application users."
+    }
+  ]
+}
